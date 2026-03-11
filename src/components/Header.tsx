@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ShoppingCart, Search, User, Package, Menu, X, Phone, Leaf } from "lucide-react";
+import { Search, User, Package, Menu, X, Phone, Leaf } from "lucide-react";
+import { CartDrawer } from "@/components/CartDrawer";
 import { motion, AnimatePresence } from "framer-motion";
 
 const navItems = [
