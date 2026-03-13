@@ -460,7 +460,26 @@ export async function loginShopifyCustomer(email: string, password: string) {
   if (data?.errors) return { success: false, errors: data.errors };
   const errors = data?.data?.customerAccessTokenCreate?.customerUserErrors || [];
   if (errors.length > 0) return { success: false, errors };
-  return { success: true, token: data.data.customerAccessTokenCreate.customerAccessToken };
+  
+  const tokenData = data.data.customerAccessTokenCreate.customerAccessToken;
+  
+  // Fetch customer details and save session immediately
+  const customer = await fetchShopifyCustomer(tokenData.accessToken);
+  const session = {
+    accessToken: tokenData.accessToken,
+    user: {
+      id: customer?.id || "",
+      email: customer?.email || email,
+      name: customer ? `${customer.firstName} ${customer.lastName}`.trim() : email.split('@')[0],
+      firstName: customer?.firstName,
+      lastName: customer?.lastName,
+      phone: customer?.phone
+    },
+    expires: new Date(tokenData.expiresAt).getTime()
+  };
+  saveSession(session);
+  
+  return { success: true, token: tokenData, user: session.user };
 }
 
 export async function fetchShopifyCustomer(token: string) {
