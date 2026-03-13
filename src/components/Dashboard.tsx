@@ -10,7 +10,7 @@ import {
   UserCircle,
   ArrowLeft
 } from "lucide-react";
-import { fetchShopifyCustomer, updateShopifyCustomer } from "@/lib/shopify";
+import { fetchShopifyCustomer, updateShopifyCustomer, getValidCustomerToken, getStoredSession, clearSession, saveSession } from "@/lib/shopify";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";

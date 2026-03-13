@@ -73,44 +73,31 @@ const Header = () => {
   }, []);
 
   useEffect(() => {
-    const checkSession = () => {
-      const savedSession = localStorage.getItem('salmara_session');
-      if (savedSession) {
-        try {
-          const sessionData = JSON.parse(savedSession);
-          // Check if session is expired
-          if (Date.now() < sessionData.expires) {
-            setUser(sessionData.user);
-          } else {
-            localStorage.removeItem('salmara_session');
-            setUser(null);
-          }
-        } catch (e) {
-          localStorage.removeItem('salmara_session');
-          setUser(null);
-        }
+    const checkSession = async () => {
+      const session = getStoredSession();
+      if (!session) {
+        setUser(null);
+        return;
+      }
+      const token = await getValidCustomerToken();
+      if (token) {
+        // Re-read session in case it was renewed
+        const updated = getStoredSession();
+        setUser(updated?.user || null);
       } else {
         setUser(null);
       }
     };
 
-    // Initial check
     checkSession();
-
-    // Listen for custom manual events
     window.addEventListener('auth-status-change', checkSession);
-    
-    return () => {
-      window.removeEventListener('auth-status-change', checkSession);
-    };
+    return () => window.removeEventListener('auth-status-change', checkSession);
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('salmara_session');
+    clearSession();
     setUser(null);
     toast.success("Logged out successfully");
-    // Force a reload or redirect if on protected route? Dashboard handles its own check
-    window.dispatchEvent(new Event('auth-status-change'));
   };
 
   return (
