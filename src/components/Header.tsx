@@ -5,6 +5,7 @@ import { AuthModal } from "@/components/AuthModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
+import { getStoredSession, getValidCustomerToken, clearSession } from "@/lib/shopify";
 
 const logo = "/salamara_icon.png";
 
