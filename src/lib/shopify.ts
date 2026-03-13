@@ -314,7 +314,7 @@ export function getStoredSession() {
   }
 }
 
-function saveSession(session: any) {
+export function saveSession(session: any) {
   localStorage.setItem('salmara_session', JSON.stringify(session));
   window.dispatchEvent(new Event('auth-status-change'));
 }
