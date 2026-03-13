@@ -3,8 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Loader2 } from "lucide-react";
 import { 
   createShopifyCustomer, 
-  loginShopifyCustomer, 
-  fetchShopifyCustomer 
+  loginShopifyCustomer
 } from "@/lib/shopify";
 import { toast } from "sonner";
 
