@@ -3,6 +3,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import clinicImg from "@/assets/clinics-page.png";
 import { 
   Search, 
   MapPin, 
@@ -138,10 +139,11 @@ const ClinicsPage = () => {
         </div>
 
         {/* 1) Hero Section */}
-        <section className="relative pt-32 pb-24 md:pt-48 md:pb-32 bg-[#F2EDE4] overflow-hidden">
+        <section className="relative pt-24 pb-16 md:pt-32 md:pb-24 bg-[#F2EDE4] overflow-hidden">
           <div className="absolute top-0 right-0 w-1/2 h-full hidden lg:block">
             <img 
-              src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?q=80&w=2080&auto=format&fit=crop" 
+              // src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?q=80&w=2080&auto=format&fit=crop" 
+              src={clinicImg}
               alt="Ayurvedic Consultation" 
               className="w-full h-full object-cover grayscale-[20%] opacity-90"
             />
@@ -175,7 +177,7 @@ const ClinicsPage = () => {
         {/* 2 & 3) Search, Filter and Available Clinics Combined Container */}
         <div className="relative">
           {/* Search & Filter - Sticky but localized to this container */}
-          <section className="py-12 bg-white border-b border-[#F2EDE4] sticky top-20 z-40 shadow-sm">
+          <section className="py-8 bg-white border-b border-[#F2EDE4] sticky top-20 z-40 shadow-sm">
             <div className="container px-4">
               <div className="flex flex-col lg:flex-row items-center gap-6">
                 <div className="relative flex-1 w-full">
@@ -235,7 +237,7 @@ const ClinicsPage = () => {
           </section>
 
           {/* Clinic Cards & Map Grid */}
-          <section className="py-24 container px-4">
+          <section className="py-16 container px-4">
             <div className="grid lg:grid-cols-2 gap-16">
               <div className="space-y-8">
                 <h2 className="text-3xl font-display font-medium text-[#1A2E35]">Available Clinics</h2>
@@ -401,14 +403,10 @@ const ClinicsPage = () => {
         </div>
 
         {/* 5) Treatment Programs - Holistic Healing for Every Need */}
-        <section className="py-24 bg-[#F8F9FA] border-y border-[#F2EDE4] relative">
+        <section className="py-16 bg-[#F8F9FA] border-y border-[#F2EDE4] relative">
           <div className="container px-4">
-            <div className="text-center max-w-4xl mx-auto mb-20">
+            <div className="text-center max-w-4xl mx-auto mb-12">
               <h2 className="text-3xl md:text-5xl font-display font-medium text-[#1A2E35] mb-6">Holistic Healing for Every Need</h2>
-              <p className="text-[#1A2E35]/60 font-sans-clean leading-relaxed">
-                This section helps users understand what kinds of health issues Salmara treats. 
-                Specialized Ayurvedic programs designed to restore internal harmony and physical vitality.
-              </p>
             </div>
             
             <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">
@@ -437,7 +435,7 @@ const ClinicsPage = () => {
         </section>
 
         {/* 6) Consultation Process */}
-        <section className="py-24 bg-white border-b border-[#F2EDE4] relative">
+        <section className="py-16 bg-white border-b border-[#F2EDE4] relative">
           <div className="container px-4">
             <div className="text-center mb-16">
               <h2 className="text-2xl md:text-3xl font-display font-medium text-[#1A2E35]">Experience Seamless Care</h2>
@@ -451,8 +449,8 @@ const ClinicsPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-12 lg:gap-8 relative">
                 {[
                   { step: "Choose Clinic", icon: <MapPin className="h-5 w-5" /> },
-                  { step: "Select Date & Time", icon: <Calendar className="h-5 w-5" /> },
                   { step: "Pick Doctor", icon: <UserCheck className="h-5 w-5" /> },
+                  { step: "Select Date & Time", icon: <Calendar className="h-5 w-5" /> },
                   { step: "Confirm Appointment", icon: <CheckCircle2 className="h-5 w-5" /> },
                   { step: "Receive Confirmation", icon: <ArrowRight className="h-5 w-5" /> }
                 ].map((item, i) => (
@@ -471,9 +469,9 @@ const ClinicsPage = () => {
         </section>
 
         {/* 7) FAQ */}
-        <section className="py-24 md:py-32 container px-4 relative">
+        <section className="py-16 md:py-24 container px-4 relative">
           <div className="max-w-3xl mx-auto">
-            <div className="text-center mb-16">
+            <div className="text-center mb-12">
               <h2 className="text-3xl font-display font-medium text-[#1A2E35]">Common Questions</h2>
               <p className="text-[#1A2E35]/60 mt-4">Everything you need to know about starting your treatment.</p>
             </div>
@@ -509,7 +507,7 @@ const ClinicsPage = () => {
         </section>
 
         {/* 8) Page-End CTA Banner */}
-        <section className="py-24 container px-4 mb-24">
+        <section className="py-16 container px-4 mb-16">
           <div className="bg-[#1A2E35] rounded-[3rem] p-12 md:p-24 text-center relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-full bg-[url('https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1976&auto=format&fit=crop')] bg-cover bg-center opacity-10" />
             

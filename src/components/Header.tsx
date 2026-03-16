@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
-import { Search, User, Menu, X, Phone, Leaf, Package, UserCircle } from "lucide-react";
+import { Search, User, Menu, X, Phone, Leaf, Package, UserCircle, Heart } from "lucide-react";
 import { CartDrawer } from "@/components/CartDrawer";
 import { AuthModal } from "@/components/AuthModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
-import { getStoredSession, clearSession, getValidCustomerToken } from "@/lib/shopify";
+import { getStoredSession, clearSession, getValidCustomerToken, fetchProducts, type ShopifyProduct } from "@/lib/shopify";
 import { useCartStore } from "@/stores/cartStore";
+import { useNavigate } from "react-router-dom";
+import { useWishlistStore } from "@/stores/wishlistStore";
 
 const logo = "/salamara_icon.png";
 
@@ -32,9 +34,15 @@ const Header = () => {
   const { clearCart } = useCartStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [allProducts, setAllProducts] = useState<ShopifyProduct[]>([]);
+  const [searchResults, setSearchResults] = useState<ShopifyProduct[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [authView, setAuthView] = useState<"login" | "register">("login");
   const [user, setUser] = useState<any>(null);
+  const navigate = useNavigate();
+  const { setUserId } = useWishlistStore();
 
   const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement> | null, href: string) => {
     const hash = href.includes("#") ? `#${href.split("#")[1]}` : href;
@@ -80,8 +88,10 @@ const Header = () => {
       
       if (token && session?.user) {
         setUser(session.user);
+        setUserId(session.user.id);
       } else {
         setUser(null);
+        setUserId('guest');
       }
     };
 
@@ -96,12 +106,47 @@ const Header = () => {
   const handleLogout = () => {
     clearSession();
     clearCart();
+    setUserId('guest');
     setUser(null);
     toast.success("Logged out successfully");
     // Force a full reload to ensure all states are clean
     setTimeout(() => {
       window.location.href = "/";
     }, 500);
+  };
+
+  // Fetch products for search cache
+  useEffect(() => {
+    if (searchOpen && allProducts.length === 0) {
+      fetchProducts(50).then(setAllProducts).catch(console.error);
+    }
+  }, [searchOpen, allProducts]);
+
+  // Handle live search
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    const query = searchQuery.toLowerCase();
+    const filtered = allProducts.filter((product) => {
+      const titleMatch = product.node.title.toLowerCase().includes(query);
+      const tagMatch = product.node.tags.some(tag => tag.toLowerCase().includes(query));
+      const descriptionMatch = product.node.description.toLowerCase().includes(query);
+      return titleMatch || tagMatch || descriptionMatch;
+    }).slice(0, 5); // Limit to top 5 results
+
+    setSearchResults(filtered);
+    setIsSearching(false);
+  }, [searchQuery, allProducts]);
+
+  const handleResultClick = (handle: string) => {
+    setSearchOpen(false);
+    setSearchQuery("");
+    navigate(`/product/${handle}`);
   };
 
   return (
@@ -114,14 +159,21 @@ const Header = () => {
       {/* Main Header */}
       <header className="sticky top-0 z-50 bg-white border-b border-border/40 shadow-sm">
         <div className="container mx-auto px-4 flex items-center justify-between h-16 lg:h-20">
-          {/* Logo */}
-          <a 
-            href="#" 
-            onClick={(e) => scrollToSection(e, "#")}
-            className="flex items-center gap-2 shrink-0"
+          {/* Logo & Tagline */}
+          <Link 
+            to="/" 
+            className="flex items-center gap-4 shrink-0 group"
           >
-            <img src={logo} alt="Salmara Logo" className="h-10 md:h-12 w-auto" />
-          </a>
+            <img src={logo} alt="Salmara Logo" className="h-10 md:h-14 w-auto drop-shadow-sm transition-transform group-hover:scale-105" />
+            <div className="hidden lg:flex flex-col border-l border-[#F2EDE4] pl-4">
+              <span className="text-[10px] md:text-sm font-display font-medium text-[#1A2E35] leading-tight tracking-wide">
+                Rediscover Wellness Through
+              </span>
+              <span className="text-[10px] md:text-sm font-display font-medium text-[#5A7A5C] leading-tight tracking-wide italic">
+                Authentic Ayurveda.
+              </span>
+            </div>
+          </Link>
 
           {/* Desktop Nav - centered */}
           <nav className="hidden xl:flex items-center gap-1">
@@ -162,13 +214,98 @@ const Header = () => {
 
           {/* Right Icons */}
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSearchOpen(!searchOpen)}
-              className="p-2 text-foreground/70 hover:text-primary transition-colors"
-              aria-label="Search"
+            <div className="relative flex items-center">
+              <AnimatePresence>
+                {searchOpen && (
+                  <motion.div
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: 200, opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    className="overflow-hidden mr-2"
+                  >
+                    <input
+                      type="text"
+                      placeholder="Search..."
+                      autoFocus
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full bg-[#F2EDE4]/50 border border-[#F2EDE4] rounded-full px-4 py-1.5 text-sm font-sans-clean outline-none focus:border-[#5A7A5C] transition-colors"
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              
+              <button
+                onClick={() => {
+                  setSearchOpen(!searchOpen);
+                  if (searchOpen) setSearchQuery("");
+                }}
+                className={`p-2 transition-colors duration-300 ${searchOpen ? 'text-[#5A7A5C]' : 'text-foreground/70 hover:text-primary'}`}
+                aria-label="Search"
+              >
+                {searchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
+              </button>
+
+              {/* Search Results Dropdown */}
+              <AnimatePresence>
+                {searchOpen && searchResults.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute top-full right-0 mt-2 w-64 bg-white border border-[#F2EDE4] rounded-2xl shadow-2xl z-[60] overflow-hidden"
+                  >
+                    <div className="p-2 space-y-1">
+                      <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#1A2E35]/40 border-b border-[#F2EDE4] mb-1">
+                        Results
+                      </p>
+                      {searchResults.map((product) => (
+                        <button
+                          key={product.node.id}
+                          onClick={() => handleResultClick(product.node.handle)}
+                          className="w-full flex items-center gap-3 p-2 hover:bg-[#F2EDE4]/30 rounded-xl transition-colors text-left group"
+                        >
+                          <div className="w-10 h-10 rounded-lg overflow-hidden bg-[#F2EDE4]/50 shrink-0">
+                            {product.node.images.edges[0]?.node?.url ? (
+                              <img src={product.node.images.edges[0].node.url} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <Leaf className="w-5 h-5 m-2.5 text-[#5A7A5C]/30" />
+                            )}
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-xs font-bold text-[#1A2E35] truncate group-hover:text-[#5A7A5C] transition-colors">
+                              {product.node.title}
+                            </span>
+                            <span className="text-[10px] text-[#1A2E35]/40 truncate">
+                              {product.node.productType || "Ayurvedic Formulation"}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                      <Link 
+                        to={`/shop?search=${searchQuery}`}
+                        onClick={() => {
+                          setSearchOpen(false);
+                          setSearchQuery("");
+                        }}
+                        className="block text-center py-2 text-[10px] font-bold uppercase tracking-widest text-[#5A7A5C] hover:bg-[#5A7A5C]/5 transition-colors"
+                      >
+                        View All Results
+                      </Link>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <Link 
+              to="/wishlist" 
+              className="p-2 text-foreground/70 hover:text-red-500 transition-colors relative group"
+              aria-label="Wishlist"
             >
-              <Search className="h-5 w-5" />
-            </button>
+              <Heart className="h-5 w-5 group-hover:scale-110 transition-transform" />
+            </Link>
+
             <CartDrawer />
             
             {user ? (
@@ -213,26 +350,7 @@ const Header = () => {
           </div>
         </div>
 
-        {/* Search Bar */}
-        <AnimatePresence>
-          {searchOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="border-t border-border overflow-hidden"
-            >
-              <div className="container mx-auto px-4 py-3">
-                <input
-                  type="text"
-                  placeholder="Search products, remedies, ingredients..."
-                  className="w-full bg-secondary rounded-lg px-4 py-3 text-sm font-sans-clean outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground"
-                  autoFocus
-                />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Removed Old Search Bar */}
       </header>
 
       {/* Auth Modal */}

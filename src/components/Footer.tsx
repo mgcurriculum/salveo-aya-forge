@@ -22,7 +22,8 @@ const Footer = () => (
               const href = label === "Home" ? "/" : 
                            label === "About Us" ? "/about" : 
                            label === "Shop Now" ? "/shop" : 
-                           label === "Blog" ? "/#blog" : "#footer";
+                           label === "Blog" ? "/#blog" : 
+                           label === "Contact Us" ? "/contact" : "#footer";
               
               const isExternal = href.startsWith("#");
               
@@ -61,11 +62,17 @@ const Footer = () => (
         <div>
           <h4 className="font-display font-bold text-xl mb-8">Connect</h4>
           <div className="flex gap-4">
-            {[Facebook, Instagram, Youtube, Linkedin].map((Icon, i) => (
+            {[
+              { Icon: Facebook, href: "https://www.facebook.com/share/18GfJXco63/?mibextid=wwXIfr" },
+              { Icon: Instagram, href: "https://www.instagram.com/salmara_ayurveda?igsh=ejhxdHA0NGFoeWNj" },
+              { Icon: Youtube, href: "https://www.youtube.com/@salmara_ayurveda" }
+            ].map(({ Icon, href }, i) => (
               <a
                 key={i}
-                href="#"
-                className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center hover:bg-white/10 transition-all"
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center hover:bg-white/10 transition-all font-body text-base"
               >
                 <Icon className="h-4 w-4 text-white" />
               </a>

@@ -14,11 +14,15 @@ import {
   Leaf,
   Loader2,
   X,
-  Check
+  Check,
+  Heart,
+  Star
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { fetchProducts, createShopifyCart, type ShopifyProduct } from "@/lib/shopify";
+import { fetchProductsViaAdmin } from "@/lib/shopifyAdmin";
 import { useCartStore } from "@/stores/cartStore";
+import { useWishlistStore } from "@/stores/wishlistStore";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -64,16 +68,24 @@ const ShopPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   
   const { addItem, isLoading: isCartStoreLoading } = useCartStore();
+  const { toggleItem, isInWishlist } = useWishlistStore();
   
   const gridRef = useRef(null);
   const isGridInView = useInView(gridRef, { once: true, margin: "-100px" });
 
   useEffect(() => {
     setLoading(true);
-    fetchProducts(50) // Fetch more for better filtering
+    fetchProductsViaAdmin(50) // Fetch more for better filtering
       .then(setProducts)
       .catch(console.error)
       .finally(() => setLoading(false));
+
+    // Handle search parameter from URL
+    const params = new URLSearchParams(window.location.search);
+    const searchParam = params.get('search');
+    if (searchParam) {
+      setSearchQuery(searchParam);
+    }
   }, []);
 
   // Derived Categories
@@ -111,7 +123,14 @@ const ShopPage = () => {
       }
       
       // 4. Availability Filter
-      if (inStockOnly && !p.node.variants.edges.some(v => v.node.availableForSale)) {
+      if (inStockOnly && !p.node.variants.edges.some(v => {
+        // Since we mapped Admin API inventoryQuantity to availableForSale in shopifyAdmin.ts
+        // we can simply check availableForSale or check inventoryQuantity directly if provided
+        if (typeof (v.node as any).inventoryQuantity === 'number') {
+          return (v.node as any).inventoryQuantity > 0;
+        }
+        return v.node.availableForSale;
+      })) {
         return false;
       }
       
@@ -129,6 +148,13 @@ const ShopPage = () => {
       if (sortBy === "Price: Low to High") return priceA - priceB;
       if (sortBy === "Price: High to Low") return priceB - priceA;
       if (sortBy === "Newest First") return b.node.id.localeCompare(a.node.id); // Simple ID fallback for mock "newest"
+      if (sortBy === "Doctor Recommended") {
+        const isDocA = a.node.tags?.includes("Doctor Recommended") || a.node.handle === 'brahmi-hair-oil';
+        const isDocB = b.node.tags?.includes("Doctor Recommended") || b.node.handle === 'brahmi-hair-oil';
+        if (isDocA && !isDocB) return -1;
+        if (!isDocA && isDocB) return 1;
+        return 0;
+      }
       return 0; // Default Bestselling
     });
   }, [products, selectedConcern, selectedCategory, selectedPriceRange, inStockOnly, sortBy, searchQuery]);
@@ -334,7 +360,7 @@ const ShopPage = () => {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56 bg-white rounded-2xl border-[#F2EDE4] shadow-2xl p-2 z-[100]">
                     <DropdownMenuRadioGroup value={sortBy} onValueChange={setSortBy}>
-                      {["Bestselling", "Price: Low to High", "Price: High to Low", "Newest First"].map((s) => (
+                      {["Bestselling", "Price: Low to High", "Price: High to Low", "Newest First", "Doctor Recommended"].map((s) => (
                         <DropdownMenuRadioItem 
                           key={s} 
                           value={s}
@@ -422,12 +448,46 @@ const ShopPage = () => {
                         </div>
                       </Link>
 
+                      {/* Wishlist Button */}
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (variant) toggleItem(product, variant.id);
+                        }}
+                        className={`absolute top-4 right-4 p-2.5 rounded-full backdrop-blur-md border transition-all z-20 shadow-sm ${
+                          variant && isInWishlist(variant.id) 
+                            ? 'bg-red-500 border-red-500 text-white' 
+                            : 'bg-white/90 border-border text-foreground hover:bg-white'
+                        }`}
+                      >
+                        <Heart className={`h-4 w-4 ${variant && isInWishlist(variant.id) ? 'fill-white' : ''}`} />
+                      </button>
+
                       <div className="p-5">
                         <Link to={`/product/${product.node.handle}`}>
                           <h3 className="font-display font-semibold text-foreground text-lg mb-1 hover:text-primary transition-colors">
                             {product.node.title}
                           </h3>
                         </Link>
+                        
+                        {/* Rating Display */}
+                        <div className="flex items-center gap-1.5 mb-3">
+                          <div className="flex">
+                            {[...Array(5)].map((_, i) => (
+                              <Star 
+                                key={i} 
+                                className={`h-3 w-3 ${i < (product.node.handle === 'triphala-churna' ? 5 : 4) ? 'fill-[#C5A059] text-[#C5A059]' : 'text-[#F2EDE4]'}`} 
+                              />
+                            ))}
+                          </div>
+                          <span className="text-[10px] font-bold text-[#1A2E35]/40 tracking-tighter">
+                            {product.node.handle === 'triphala-churna' ? '4.9 (248 reviews)' : 
+                             product.node.handle === 'brahmi-hair-oil' ? '4.8 (186 reviews)' : 
+                             product.node.handle === 'triphala-tablets' ? '4.7 (92 reviews)' : 
+                             '4.5 (124 reviews)'}
+                          </span>
+                        </div>
                         <p className="text-muted-foreground font-body text-sm mb-3 line-clamp-2">{product.node.description}</p>
 
                         {price && (
@@ -458,10 +518,10 @@ const ShopPage = () => {
                           <button
                             onClick={() => handleBuyNow(product)}
                             disabled={!variant?.availableForSale || addingId === product.node.id || buyingId === product.node.id}
-                            className="w-full border-2 border-[#1A2E35] text-[#1A2E35] py-2.5 rounded-lg font-sans-clean text-[10px] font-bold uppercase tracking-wider hover:bg-[#1A2E35] hover:text-white transition-all disabled:opacity-50 flex items-center justify-center"
+                            className="w-full border-2 border-[#1A2E35] text-[#1A2E35] py-2.5 rounded-lg font-sans-clean text-[10px] font-bold uppercase tracking-wider hover:bg-[#1A2E35] hover:text-white transition-all disabled:opacity-50 disabled:bg-[#f2f2f2] disabled:border-gray-300 disabled:text-gray-400 flex items-center justify-center"
                           >
                             {buyingId === product.node.id ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
-                            {buyingId === product.node.id ? "Preparing..." : "Buy Now Direct"}
+                            {buyingId === product.node.id ? "Preparing..." : (!variant?.availableForSale ? "Out of Stock" : "Buy Now Direct")}
                           </button>
                         </div>
                       </div>

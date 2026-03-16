@@ -3,8 +3,8 @@ import { MessageCircle, Phone, Users, MessageSquare } from "lucide-react";
 const buttons = [
   { icon: MessageCircle, label: "WhatsApp", color: "bg-green-600 hover:bg-green-700", href: "https://wa.me/919995731915?text=Hello%20Salmara%20Team,%20I%20would%20like%20to%20know%20more%20about%20your%20Ayurvedic%20wellness%20products." },
   { icon: Phone, label: "+91 80 4932 2300", color: "bg-[#5A7A5C] hover:bg-[#4A634C]", href: "tel:+918049322300" },
-  { icon: Users, label: "Affiliate", color: "bg-[#C5A059] hover:bg-[#B48F48]", href: "/contact" },
-  { icon: MessageSquare, label: "Feedback", color: "bg-[#8E9196] hover:bg-[#71717A]", href: "/contact" },
+ // { icon: Users, label: "Affiliate", color: "bg-[#C5A059] hover:bg-[#B48F48]", href: "/contact" },
+//  { icon: MessageSquare, label: "Feedback", color: "bg-[#8E9196] hover:bg-[#71717A]", href: "/contact" },
 ];
 
 const FloatingButtons = () => {

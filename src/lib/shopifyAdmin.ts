@@ -115,6 +115,85 @@ const CUSTOMER_ORDERS_QUERY = `
   }
 `;
 
+const PRODUCTS_ADMIN_QUERY = `
+  query GetProducts($first: Int!) {
+    products(first: $first) {
+      edges {
+        node {
+          id
+          title
+          description
+          handle
+          productType
+          tags
+          images(first: 5) {
+            edges {
+              node {
+                url
+                altText
+              }
+            }
+          }
+          variants(first: 10) {
+            edges {
+              node {
+                id
+                title
+                price
+                inventoryQuantity
+                selectedOptions {
+                  name
+                  value
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+const PRODUCT_BY_HANDLE_ADMIN_QUERY = `
+  query GetProductByHandle($handle: String!) {
+    productByHandle(handle: $handle) {
+      id
+      title
+      description
+      descriptionHtml
+      handle
+      productType
+      tags
+      images(first: 10) {
+        edges {
+          node {
+            url
+            altText
+          }
+        }
+      }
+      variants(first: 20) {
+        edges {
+          node {
+            id
+            title
+            price
+            inventoryQuantity
+            selectedOptions {
+              name
+              value
+            }
+          }
+        }
+      }
+      options {
+        name
+        values
+      }
+    }
+  }
+`;
+
 async function adminApiRequest(query: string, variables: Record<string, unknown> = {}) {
   const response = await fetch('/api/shopify-admin', {
     method: 'POST',
@@ -301,5 +380,71 @@ export async function updateCustomerCartId(customerId: string, cartId: string): 
     return { success: true };
   } catch (error: any) {
     return { success: false, errors: [{ message: error.message }] };
+  }
+}
+
+/**
+ * Fetch products via the Admin API to get inventory data.
+ */
+export async function fetchProductsViaAdmin(first = 20): Promise<any[]> {
+  try {
+    const data = await adminApiRequest(PRODUCTS_ADMIN_QUERY, { first });
+    const productEdges = data?.data?.products?.edges || [];
+    
+    // Map Admin API response to match ShopifyProduct interface used in the app
+    return productEdges.map((edge: any) => ({
+      node: {
+        ...edge.node,
+        variants: {
+          edges: edge.node.variants.edges.map((vEdge: any) => ({
+            node: {
+              ...vEdge.node,
+              // Admin API price is a string, Storefront expects price object
+              price: {
+                amount: vEdge.node.price,
+                currencyCode: "INR" 
+              },
+              // Storefront uses availableForSale, Admin uses inventoryQuantity
+              availableForSale: vEdge.node.inventoryQuantity > 0
+            }
+          }))
+        }
+      }
+    }));
+  } catch (error) {
+    console.error("Error fetching products via Admin API:", error);
+    return [];
+  }
+}
+
+/**
+ * Fetch a single product by handle via the Admin API to get inventory data.
+ */
+export async function fetchProductByHandleViaAdmin(handle: string): Promise<any | null> {
+  try {
+    const data = await adminApiRequest(PRODUCT_BY_HANDLE_ADMIN_QUERY, { handle });
+    const product = data?.data?.productByHandle;
+    
+    if (!product) return null;
+    
+    // Map Admin API response to match ShopifyProduct structure used in the app
+    return {
+      ...product,
+      variants: {
+        edges: product.variants.edges.map((vEdge: any) => ({
+          node: {
+            ...vEdge.node,
+            price: {
+              amount: vEdge.node.price,
+              currencyCode: "INR"
+            },
+            availableForSale: vEdge.node.inventoryQuantity > 0
+          }
+        }))
+      }
+    };
+  } catch (error) {
+    console.error("Error fetching product by handle via Admin API:", error);
+    return null;
   }
 }

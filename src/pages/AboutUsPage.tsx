@@ -1,20 +1,29 @@
-import React from "react";
+import React, { useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useNavigate, Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import { ArrowLeft, CheckCircle2, Award, ShieldCheck, Microscope, FlaskConical, MapPin, ArrowRight, ChevronRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  ArrowLeft, CheckCircle2, Award, ShieldCheck, Microscope, 
+  FlaskConical, MapPin, ArrowRight, ChevronRight,
+  HandHeart, Users, Activity, History, Trophy, X, Maximize2
+} from "lucide-react";
 
 // Award Images
+import awardIMG7909 from "@/awards/IMG_7909.JPG";
 import awardIMG7913 from "@/awards/IMG_7913.JPG";
 import awardIMG7915 from "@/awards/IMG_7915.JPG";
 import awardIMG7916 from "@/awards/IMG_7916.JPG";
+import awardIMG7918 from "@/awards/IMG_7918.JPG";
+import awardIMG7921 from "@/awards/IMG_7921.JPG";
+import awardNobleMan from "@/awards/Noble-Man-Award.png";
 
 // Assets
 import aboutLab from "@/assets/about-lab.jpg";
 
 const AboutUsPage = () => {
   const navigate = useNavigate();
+  const [selectedAward, setSelectedAward] = useState<{title: string, img: string} | null>(null);
   return (
     <div className="min-h-screen bg-[#FDFBF7]">
       <Header />
@@ -65,9 +74,9 @@ const AboutUsPage = () => {
                 <Link to="/shop" className="w-full sm:w-auto px-8 py-4 bg-[#5A7A5C] text-white rounded-lg font-bold tracking-widest uppercase text-xs hover:bg-[#4a654c] transition-all shadow-xl shadow-black/20">
                   Explore Products
                 </Link>
-                <a href="#consultation" className="w-full sm:w-auto px-8 py-4 bg-white/10 backdrop-blur-md text-white border border-white/20 rounded-lg font-bold tracking-widest uppercase text-xs hover:bg-white/20 transition-all">
+                <Link to="/clinics" className="w-full sm:w-auto px-8 py-4 bg-white/10 backdrop-blur-md text-white border border-white/20 rounded-lg font-bold tracking-widest uppercase text-xs hover:bg-white/20 transition-all">
                   Discover Our Clinics
-                </a>
+                </Link>
               </div>
             </motion.div>
           </div>
@@ -107,6 +116,202 @@ const AboutUsPage = () => {
                 <p className="font-display italic text-xl text-[#5A7A5C]">Dr. S. Mallikarjuna</p>
                 <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-[#1A2E35]/40">— Founder, Salmara Ayurveda</p>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 2.5) Our Journey */}
+        <section className="py-16 md:py-24 bg-white overflow-hidden">
+          <div className="container px-4 max-w-6xl mx-auto">
+            <div className="text-center mb-16">
+              <span className="text-[10px] uppercase tracking-[0.3em] font-bold text-[#5A7A5C] mb-4 block">The Salmara Legacy</span>
+              <h2 className="text-4xl md:text-5xl font-display font-medium text-[#1A2E35]">Our Journey</h2>
+              <div className="w-24 h-1 bg-[#F2EDE4] mx-auto mt-6" />
+            </div>
+
+            <div className="grid lg:grid-cols-2 gap-12 lg:gap-24 items-start">
+              {/* Narrative Story */}
+              <div className="space-y-8 text-[#1A2E35]/70 font-sans-clean leading-relaxed text-lg text-justify">
+                <p>
+                  <span className="text-7xl font-display text-[#5A7A5C] float-left mr-4 mt-1 leading-[0.8] h-full">I</span>n 1996, our founder inherited more than recipes—he inherited a responsibility. With ancestral formulations for hair care and kidney health, we began a mission to bring authentic Ayurvedic healing to every home.
+                </p>
+                <p>
+                  Our journey started with a simple yet profound belief: that healing should be rooted in tradition and accessible to all. What began as two time-honored formulations passed down through generations became the foundation of a movement that would transform lives across India.
+                </p>
+                <p>
+                  Our mission extended far beyond clinic walls. Since 2004, we have conducted over 100 free medical camps, reaching underserved communities in remote villages and urban neighborhoods alike. We traveled where others wouldn’t—because we believe healing is a right, not a privilege.
+                </p>
+                <p>
+                  In 2005, we opened our first clinic in Murudjinjira. More than a medical facility, it became a sanctuary where ancient Ayurvedic wisdom met modern compassionate care. Every consultation was a conversation, every treatment a step toward holistic wellness.
+                </p>
+                <p>
+                  In 2006, our dedication earned official recognition when we became an AYUSH partner. This was not just certification—it was validation of authentic practice and responsibility.
+                </p>
+                <p>
+                  From our founder’s personal laboratory emerged 26+ carefully crafted formulations, each born from real patient experiences, years of observation, and generations of herbal wisdom.
+                </p>
+                <p>
+                  Among our breakthrough innovations is Karnataka’s No.1 piles medicine—a formulation that cures without surgical treatment, offering patients a natural, non-invasive path to complete recovery. This achievement earned us the National Health Award in 2024, recognizing innovation in traditional medicine that transforms patient outcomes.
+                </p>
+              </div>
+
+              {/* Milestones Timeline */}
+              <div className="bg-[#FDFBF7] rounded-[2.5rem] p-8 md:p-12 border border-[#F2EDE4] relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-[#F2EDE4]/30 rounded-full blur-3xl -mr-32 -mt-32" />
+                <h3 className="text-2xl font-display font-medium text-[#1A2E35] mb-10 relative z-10">Milestones of Growth</h3>
+                
+                <div className="space-y-8 relative z-10">
+                  <div className="absolute left-[11px] top-2 bottom-2 w-[1px] bg-[#F2EDE4] md:left-[15px]" />
+                  
+                  {[
+                    { year: "1996", label: "Founded with ancestral knowledge" },
+                    { year: "2004", label: "Launched free medical camps initiative" },
+                    { year: "2005", label: "Established first clinic in Murudjinjira" },
+                    { year: "2006", label: "Official AYUSH Partner recognition" },
+                    { year: "2009", label: "Received Noble Man Award" },
+                    { year: "2017", label: "Honored with two major state awards" },
+                    { year: "2019", label: "Nava Rathna Award for excellence" },
+                    { year: "2024", label: "National Health Award for Innovation" },
+                    { year: "2025", label: "Three prestigious honors in healing" },
+                  ].map((milestone, idx) => (
+                    <motion.div 
+                      key={idx}
+                      initial={{ opacity: 0, x: -10 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: idx * 0.1 }}
+                      className="flex gap-6 relative"
+                    >
+                      <div className="w-[22px] h-[22px] md:w-[30px] md:h-[30px] rounded-full bg-white border-2 border-[#5A7A5C] flex-shrink-0 z-10 flex items-center justify-center">
+                        <div className="w-2 h-2 rounded-full bg-[#5A7A5C]" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-[#5A7A5C] tracking-widest">{milestone.year}</span>
+                        <span className="text-[#1A2E35]/80 font-sans-clean leading-snug">{milestone.label}</span>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Impact Block */}
+            <div className="mt-24 bg-[#1A2E35] rounded-[3rem] p-10 md:p-16 text-white relative overflow-hidden">
+              <div className="absolute inset-0 opacity-10 pointer-events-none">
+                <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_20%_30%,#5A7A5C_0%,transparent_50%)]" />
+              </div>
+              
+              <div className="relative z-10 grid md:grid-cols-2 lg:grid-cols-3 gap-12 lg:gap-16">
+                <div className="space-y-4">
+                  <h3 className="text-3xl md:text-4xl font-display border-b border-white/10 pb-4">Our Impact</h3>
+                  <p className="text-white/60 font-sans-clean italic">
+                    "Our journey from one clinic to eight cities. From local practice to a national movement."
+                  </p>
+                  <p className="text-[10px] uppercase tracking-widest text-white/40 pt-4 leading-relaxed">
+                    Our founder also serves as Jilla Adhyaksha (District President) of Karnataka Paramparika Vaidya Sangha.
+                  </p>
+                </div>
+                
+                <div className="lg:col-span-2 grid grid-cols-2 gap-8 md:gap-12">
+                  {[
+                    { val: "26+", label: "Ancestral Products" },
+                    { val: "8", label: "Cities Presence" },
+                    { val: "100+", label: "Medical Camps" },
+                    { val: "100k+", label: "Lives Healed" },
+                  ].map((stat, idx) => (
+                    <div key={idx} className="space-y-1">
+                      <div className="text-3xl md:text-5xl font-display text-[#5A7A5C]">{stat.val}</div>
+                      <div className="text-xs md:text-sm uppercase tracking-widest text-white/60 font-bold">{stat.label}</div>
+                    </div>
+                  ))}
+                  <div className="col-span-2 pt-4 border-t border-white/5">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-[#5A7A5C]/20 rounded-xl text-[#5A7A5C]">
+                        <Trophy className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <div className="text-lg font-bold text-white">Karnataka's No.1</div>
+                        <div className="text-xs text-white/60 uppercase tracking-widest">Non-surgical piles treatment</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Awards Hybrid Logic */}
+            <div className="mt-24">
+              <div className="text-center mb-12">
+                <h3 className="text-2xl md:text-3xl font-display font-medium text-[#1A2E35]">Achievements and Awards</h3>
+                <p className="text-[#1A2E35]/60 mt-2 font-sans-clean">Validation of our authentic practice and dedication.</p>
+              </div>
+
+              {/* Comprehensive Honors List */}
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-16">
+                {[
+                  { year: "2009", title: "Noble Man Award (Karnataka Sangha, Mumbai)" },
+                  { year: "2017", title: "Vaidya Seva Ratna Award (Shimoga)" },
+                  { year: "2017", title: "Gadi Nadu Award" },
+                  { year: "2019", title: "Nava Rathna Award (Rudraksha Foundation)" },
+                  { year: "2024", title: "National Health Award (Non‑surgical piles medicine)" },
+                  { year: "2025", title: "Vaidya Seva Ratna Award" },
+                  { year: "2025", title: "Taluku Kannada Rajyotsava Award" },
+                  { year: "2025", title: "Karunada Ratna Award (Samaj Seva category)" },
+                ].map((honor, idx) => (
+                  <div key={idx} className="flex items-center gap-4 p-4 rounded-2xl bg-[#FDFBF7] border border-[#F2EDE4]/50 hover:border-[#5A7A5C]/30 transition-colors">
+                    <div className="text-xs font-bold text-[#5A7A5C] w-12 shrink-0">{honor.year}</div>
+                    <div className="w-[1px] h-4 bg-[#F2EDE4]" />
+                    <div className="text-sm text-[#1A2E35]/80 font-medium">{honor.title}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Featured Awards (with images) */}
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[
+                  { title: "Foundation Ceremony 2006", year: "2006", img: awardIMG7921 },
+                  { title: "Taluku Kannada Rajyotsa award (2025)", year: "2025", img: awardIMG7909 },
+                  { title: "Karunada Ratna Award (2025)", year: "2025", img: awardIMG7918 },
+                  { title: "Nava Rathna Award 2019", year: "2019", img: awardIMG7913 },
+                  { title: "National Health Award 2025", year: "2025", img: awardIMG7916 },
+                  { title: "Vaidya Seva Ratna Award", year: "2025", img: awardIMG7915 },
+                  { title: "Noble Man Award (Mumbai)", year: "2009", img: awardNobleMan },
+                ].map((award, idx) => (
+                  <motion.div 
+                    key={idx}
+                    whileHover={{ y: -5 }}
+                    onClick={() => setSelectedAward({ title: award.title, img: award.img })}
+                    className="bg-white rounded-3xl overflow-hidden border border-[#F2EDE4] shadow-sm group cursor-pointer"
+                  >
+                    <div className="aspect-[4/5] bg-gray-100 relative">
+                      <img src={award.img} alt={award.title} className="w-full h-full object-cover grayscale-[30%] group-hover:grayscale-0 transition-all duration-500" />
+                      
+                      {/* Hover Overlay */}
+                      <div className="absolute inset-0 bg-[#1A2E35]/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                        <div className="bg-white/20 backdrop-blur-md p-3 rounded-full border border-white/30 text-white transform scale-90 group-hover:scale-100 transition-transform">
+                          <Maximize2 className="h-6 w-6" />
+                        </div>
+                      </div>
+
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-90" />
+                      <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
+                        <div className="text-[10px] font-bold uppercase tracking-widest mb-2 text-[#C5A059]">{award.year}</div>
+                        <div className="text-base md:text-xl font-display leading-tight drop-shadow-lg">{award.title}</div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            {/* Ending Narrative & CTA */}
+            <div className="mt-24 text-center max-w-2xl mx-auto">
+              <p className="text-[#1A2E35]/60 mb-8 italic">
+                From one clinic to eight cities. From two ancestral formulations to 26+ trusted products. From local practice to a national movement.
+              </p>
+              <Link to="/shop" className="inline-flex items-center gap-3 px-12 py-5 bg-[#5A7A5C] text-white rounded-xl font-bold tracking-[0.2em] uppercase text-xs hover:bg-[#4a654c] transition-all shadow-xl shadow-[#5A7A5C]/20 group">
+                Explore Our Products <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
             </div>
           </div>
         </section>
@@ -187,118 +392,7 @@ const AboutUsPage = () => {
           </div>
         </section>
 
-        {/* 5) Our Journey */}
-        <section className="py-10 bg-[#1A2E35] text-white">
-          <div className="container px-4">
-            <div className="text-center mb-12">
-              <h2 className="text-2xl md:text-4xl font-display font-medium mb-3">From Karnataka to the World</h2>
-              <p className="text-white/60 font-sans-clean">A timeline of milestones and scientific achievements.</p>
-            </div>
-            
-            <div className="max-w-4xl mx-auto space-y-12 relative">
-              <div className="absolute left-[31px] md:left-1/2 top-0 bottom-0 w-px bg-white/10 hidden md:block" />
-              
-              {[
-                { step: "1", year: "2022", title: "Emerging Ayurvedic Brand of the Year", desc: "AYUSH Excellence Awards, Bengaluru" },
-                { step: "2", year: "2023", title: "Innovation in Herbal Formulation", desc: "Indian Herbal Summit" },
-                { step: "3", year: "2024", title: "Excellence in GMP Compliance", desc: "Karnataka Herbal Manufacturers' Association" },
-                { step: "4", year: "2024", title: "Ayurveda for Modern Life", desc: "National Wellness Innovation Forum" }
-              ].map((milestone, idx) => (
-                <motion.div 
-                  key={idx} 
-                  initial={{ opacity: 0, x: idx % 2 === 0 ? -50 : 50 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6, delay: idx * 0.1 }}
-                  className={`flex flex-col md:flex-row items-center gap-4 md:gap-0 relative`}
-                >
-                  {/* Left Column (Desktop - Step 1, 3) */}
-                  <div className={`w-full md:w-1/2 flex flex-col px-8 ${idx % 2 === 0 ? 'md:items-end md:text-right' : 'opacity-0 pointer-events-none hidden md:flex'}`}>
-                    <div className="space-y-3">
-                      <span className="text-3xl md:text-5xl font-display text-[#C5A059] block mb-2">{milestone.year}</span>
-                      <h4 className="text-lg md:text-2xl font-bold leading-tight text-white mb-1">{milestone.title}</h4>
-                      <p className="text-white/40 text-[10px] md:text-xs uppercase tracking-[0.2em] font-bold">{milestone.desc}</p>
-                    </div>
-                  </div>
-                  
-                  {/* Center Dot */}
-                  <div className="h-14 w-14 md:h-20 md:w-20 rounded-full bg-[#5A7A5C] border-4 border-[#1A2E35] flex items-center justify-center shrink-0 z-20 shadow-2xl shadow-black group hover:scale-110 transition-transform">
-                    <span className="text-white text-base md:text-xl font-display font-medium">{milestone.step}</span>
-                  </div>
-                  
-                  {/* Right Column (Desktop - Step 2, 4) */}
-                  <div className={`w-full md:w-1/2 flex flex-col px-8 ${idx % 2 !== 0 ? 'md:items-start md:text-left' : 'opacity-0 pointer-events-none hidden md:flex'}`}>
-                    <div className="space-y-3">
-                      <span className="text-3xl md:text-5xl font-display text-[#C5A059] block mb-2">{milestone.year}</span>
-                      <h4 className="text-lg md:text-2xl font-bold leading-tight text-white mb-1">{milestone.title}</h4>
-                      <p className="text-white/40 text-[10px] md:text-xs uppercase tracking-[0.2em] font-bold">{milestone.desc}</p>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
 
-        {/* 6) Awards & Recognitions */}
-        <section className="py-8 md:py-10 container px-4">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl md:text-3xl font-display font-medium text-[#1A2E35] mb-2">Honoured for Our Integrity</h2>
-            <p className="text-[#1A2E35]/60 font-sans-clean leading-relaxed">Building trust with the community and industry peers.</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {[
-              { 
-                img: awardIMG7916, 
-                title: "Excellence in Ayurveda", 
-                subtitle: "Honouring integrity and traditional wisdom in modern wellness.",
-                year: "2024" 
-              },
-              { 
-                img: awardIMG7915, 
-                title: "Quality Leadership Award", 
-                subtitle: "Recognized for uncompromising standards in herbal manufacturing.",
-                year: "2024" 
-              },
-              { 
-                img: awardIMG7913, 
-                title: "Herbal Innovation Award", 
-                subtitle: "For pioneering scientific research in plant-based healing.",
-                year: "2023" 
-              }
-            ].map((award, i) => (
-              <motion.div 
-                key={i} 
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="bg-white border border-[#F2EDE4] rounded-3xl overflow-hidden group hover:border-[#C5A059] transition-all duration-500 shadow-sm hover:shadow-xl"
-              >
-                <div className="aspect-square w-full relative overflow-hidden bg-[#F8F9FA]">
-                  <img 
-                    src={award.img} 
-                    alt={award.title} 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
-                    <div className="bg-white/90 backdrop-blur-md p-4 rounded-full shadow-2xl transform scale-0 group-hover:scale-100 transition-transform duration-500 delay-100">
-                      <Award className="h-6 w-6 text-[#C5A059]" />
-                    </div>
-                  </div>
-                </div>
-                <div className="p-8 text-center border-t border-[#F2EDE4]">
-                  <div className="flex justify-center mb-4">
-                    <Award className="h-5 w-5 text-[#C5A059] opacity-50 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                  <h5 className="font-display font-bold text-[#1A2E35] text-lg mb-2">{award.title}</h5>
-                  <p className="text-sm text-[#1A2E35]/50 font-sans-clean leading-relaxed">{award.subtitle}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </section>
 
         {/* 7) The Process - Science Behind Every Drop */}
         <section className="py-10 md:py-12 bg-[#F8F9FA] overflow-hidden">
@@ -468,6 +562,48 @@ const AboutUsPage = () => {
       </main>
       
       <Footer />
+
+      {/* Lightbox for Award Images */}
+      <AnimatePresence>
+        {selectedAward && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSelectedAward(null)}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4 md:p-12 cursor-zoom-out"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative max-w-5xl w-full h-full flex flex-col items-center justify-center gap-6 cursor-default"
+            >
+              <button 
+                onClick={() => setSelectedAward(null)}
+                className="absolute top-0 -right-4 md:-right-12 p-2 text-white/50 hover:text-white transition-colors"
+                title="Close"
+              >
+                <X className="h-8 w-8" />
+              </button>
+              
+              <div className="w-full h-full overflow-hidden rounded-2xl bg-[#1A2E35]/20 flex items-center justify-center">
+                <img 
+                  src={selectedAward.img} 
+                  alt={selectedAward.title} 
+                  className="max-w-full max-h-full object-contain shadow-2xl"
+                />
+              </div>
+              
+              <div className="text-center text-white space-y-2">
+                <h4 className="text-2xl font-display">{selectedAward.title}</h4>
+                <p className="text-white/40 text-[10px] uppercase tracking-[0.3em] font-bold">Salmara Ayurveda Achievements</p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
