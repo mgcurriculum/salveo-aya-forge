@@ -29,7 +29,7 @@ const AboutUsPage = () => {
           </button>
         </div>
         {/* 1) Hero Banner */}
-        <section className="relative h-[80vh] flex items-center justify-center overflow-hidden bg-[#1A2E35]">
+        <section className="relative h-[60vh] flex items-center justify-center overflow-hidden bg-[#1A2E35]">
           <div className="absolute inset-0 opacity-40">
             {/* Minimalistic lab/herbal visual placeholder style */}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#1A2E35]" />
@@ -42,14 +42,14 @@ const AboutUsPage = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
             >
-              <h1 className="text-5xl md:text-7xl font-display font-medium text-white mb-6">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-medium text-white mb-4">
                 Where Tradition <br /> Meets Science.
               </h1>
-              <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto mb-10 font-sans-clean leading-relaxed">
+              <p className="text-base md:text-lg text-white/80 max-w-2xl mx-auto mb-8 font-sans-clean leading-relaxed">
                 We didn’t reinvent Ayurveda — we refined it through proof, purity, and precision.
               </p>
               
-              <div className="flex flex-wrap items-center justify-center gap-6 mb-12">
+              <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
                 <span className="flex items-center gap-2 text-[10px] md:text-xs font-bold tracking-[0.2em] text-[#C5A059] uppercase border border-[#C5A059]/30 px-3 py-1.5 rounded-full">
                   <ShieldCheck className="h-3 w-3" /> GMP Certified
                 </span>
@@ -73,22 +73,28 @@ const AboutUsPage = () => {
           </div>
         </section>
 
-        {/* 2) Founder’s Message */}
-        <section className="py-12 md:py-16 container px-4">
-          <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-16">
-            <div className="w-full md:w-1/3">
+        {/* 2) Founder’s Message - Minimalist Premium Redesign */}
+        <section className="py-6 md:py-10 container px-4 overflow-hidden">
+          <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center gap-8 md:gap-16">
+            {/* Image Column - Compact but Premium */}
+            <div className="w-full md:w-1/4 flex-shrink-0">
               <div className="relative">
                 <img 
                   src="https://images.unsplash.com/photo-1594824476967-48c8b964273f?q=80&w=1974&auto=format&fit=crop" 
                   alt="Founder" 
-                  className="rounded-2xl grayscale hover:grayscale-0 transition-all duration-700 shadow-2xl w-full max-w-[280px] mx-auto md:max-w-none"
+                  className="rounded-xl grayscale hover:grayscale-0 transition-all duration-700 shadow-lg w-full max-w-[200px] mx-auto md:max-w-none"
                 />
-                <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-[#5A7A5C] rounded-2xl -z-10 opacity-10" />
+                <div className="absolute -bottom-3 -right-3 w-16 h-16 bg-[#5A7A5C]/10 rounded-lg -z-10" />
               </div>
             </div>
-            <div className="w-full md:w-2/3 space-y-6">
-              <h2 className="text-3xl md:text-4xl font-display font-medium text-[#1A2E35]">A Promise Born in Karnataka</h2>
-              <div className="text-[#1A2E35]/70 font-sans-clean leading-relaxed text-lg lg:text-xl">
+
+            {/* Text Column - Refined Typography */}
+            <div className="w-full md:w-3/4 space-y-4">
+              <h2 className="text-2xl md:text-3xl font-display font-medium text-[#1A2E35] border-b border-[#C5A059]/20 pb-2 inline-block">
+                A Promise Born in Karnataka
+              </h2>
+              
+              <div className="text-[#1A2E35]/70 font-sans-clean leading-relaxed text-base md:text-lg">
                 <p>
                   When we began Salmara, it was never just about herbal formulations — it was about restoring the 
                   credibility of Ayurveda. We wanted people to experience something that feels traditional, yet proven. 
@@ -96,19 +102,20 @@ const AboutUsPage = () => {
                   already perfected.
                 </p>
               </div>
-              <div className="pt-4">
-                <p className="font-display italic text-2xl text-[#5A7A5C]">Dr. S. Mallikarjuna</p>
-                <p className="text-xs uppercase tracking-[0.2em] font-bold text-[#1A2E35]/40 mt-2">— Founder, Salmara Ayurveda</p>
+
+              <div className="pt-2">
+                <p className="font-display italic text-xl text-[#5A7A5C]">Dr. S. Mallikarjuna</p>
+                <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-[#1A2E35]/40">— Founder, Salmara Ayurveda</p>
               </div>
             </div>
           </div>
         </section>
 
         {/* 3) Philosophy */}
-        <section className="py-12 bg-[#F8F9FA]">
+        <section className="py-8 bg-[#F8F9FA]">
           <div className="container px-4">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-display font-medium text-[#1A2E35] mb-4">Purity. Precision. Proof.</h2>
+            <div className="text-center mb-8">
+              <h2 className="text-2xl md:text-3xl font-display font-medium text-[#1A2E35] mb-2">Purity. Precision. Proof.</h2>
               <p className="text-[#1A2E35]/60 font-sans-clean">The three pillars that define the Salmara standard.</p>
             </div>
             
@@ -147,9 +154,9 @@ const AboutUsPage = () => {
         </section>
 
         {/* 4) Certification Gallery */}
-        <section className="py-12 md:py-16 container px-4">
-          <div className="max-w-3xl mx-auto text-center mb-20">
-            <h2 className="text-3xl md:text-5xl font-display font-medium text-[#1A2E35] mb-6">Approved by Standards That Matter</h2>
+        <section className="py-8 md:py-10 container px-4">
+          <div className="max-w-3xl mx-auto text-center mb-10">
+            <h2 className="text-2xl md:text-3xl font-display font-medium text-[#1A2E35] mb-3">Approved by Standards That Matter</h2>
             <p className="text-[#1A2E35]/60 font-sans-clean leading-relaxed">
               Integrity is not just a word; it’s a certification. Our facility and products undergo rigorous external audits to ensure they meet the highest global standards.
             </p>
@@ -181,10 +188,10 @@ const AboutUsPage = () => {
         </section>
 
         {/* 5) Our Journey */}
-        <section className="py-12 bg-[#1A2E35] text-white">
+        <section className="py-10 bg-[#1A2E35] text-white">
           <div className="container px-4">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-5xl font-display font-medium mb-4">From Karnataka to the World</h2>
+            <div className="text-center mb-12">
+              <h2 className="text-2xl md:text-4xl font-display font-medium mb-3">From Karnataka to the World</h2>
               <p className="text-white/60 font-sans-clean">A timeline of milestones and scientific achievements.</p>
             </div>
             
@@ -234,9 +241,9 @@ const AboutUsPage = () => {
         </section>
 
         {/* 6) Awards & Recognitions */}
-        <section className="py-12 md:py-16 container px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-display font-medium text-[#1A2E35] mb-4">Honoured for Our Integrity</h2>
+        <section className="py-8 md:py-10 container px-4">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl md:text-3xl font-display font-medium text-[#1A2E35] mb-2">Honoured for Our Integrity</h2>
             <p className="text-[#1A2E35]/60 font-sans-clean leading-relaxed">Building trust with the community and industry peers.</p>
           </div>
           
@@ -269,7 +276,7 @@ const AboutUsPage = () => {
                 transition={{ delay: i * 0.1 }}
                 className="bg-white border border-[#F2EDE4] rounded-3xl overflow-hidden group hover:border-[#C5A059] transition-all duration-500 shadow-sm hover:shadow-xl"
               >
-                <div className="aspect-[4/5] relative overflow-hidden bg-[#F8F9FA]">
+                <div className="aspect-square w-full relative overflow-hidden bg-[#F8F9FA]">
                   <img 
                     src={award.img} 
                     alt={award.title} 
@@ -294,9 +301,9 @@ const AboutUsPage = () => {
         </section>
 
         {/* 7) The Process - Science Behind Every Drop */}
-        <section className="py-12 md:py-16 bg-[#F8F9FA] overflow-hidden">
+        <section className="py-10 md:py-12 bg-[#F8F9FA] overflow-hidden">
           <div className="container px-4">
-            <div className="flex flex-col lg:flex-row items-center gap-16 mb-24">
+            <div className="flex flex-col lg:flex-row items-center gap-12 mb-16">
               {/* Left visuals */}
               <div className="w-full lg:w-1/2 relative">
                 <div className="relative z-10 rounded-[2rem] overflow-hidden shadow-2xl">
@@ -314,8 +321,8 @@ const AboutUsPage = () => {
 
               {/* Right copy */}
               <div className="w-full lg:w-1/2 space-y-8">
-                <div className="space-y-4">
-                  <h2 className="text-3xl md:text-5xl font-display font-medium text-[#1A2E35]">Science Behind <br /> Every Drop</h2>
+                <div className="space-y-2">
+                  <h2 className="text-2xl md:text-3xl font-display font-medium text-[#1A2E35]">Science Behind <br /> Every Drop</h2>
                   <p className="text-[#1A2E35]/60 font-sans-clean leading-relaxed text-lg">
                     Behind-the-scenes view of Salmara's labs and processes — transparent, factual, and elegant.
                   </p>
@@ -406,9 +413,9 @@ const AboutUsPage = () => {
         </section>
 
         {/* Testimonials */}
-        <section className="py-12 container px-4 overflow-hidden">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-display font-medium text-[#1A2E35]">Trust in Every Word</h2>
+        <section className="py-10 container px-4 overflow-hidden">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl md:text-4xl font-display font-medium text-[#1A2E35]">Trust in Every Word</h2>
           </div>
           <div className="max-w-4xl mx-auto grid md:grid-cols-2 gap-8">
             <div className="bg-[#FDFBF7] p-10 rounded-3xl border border-[#F2EDE4] relative">
@@ -442,9 +449,9 @@ const AboutUsPage = () => {
         </section>
 
         {/* 8) Closing Section */}
-        <section className="py-12 md:py-16 bg-[#FDFBF7] border-t border-[#F2EDE4]">
+        <section className="py-10 md:py-12 bg-[#FDFBF7] border-t border-[#F2EDE4]">
           <div className="container px-4 text-center max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-5xl font-display font-medium text-[#1A2E35] mb-8">A Legacy of Trust</h2>
+            <h2 className="text-2xl md:text-4xl font-display font-medium text-[#1A2E35] mb-6">A Legacy of Trust</h2>
             <div className="space-y-6 text-[#1A2E35]/70 font-sans-clean leading-relaxed text-lg mb-12">
               <p>
                 From a single humble lab in Karnataka to homes across Bharat, our journey has always been about one thing: the belief that Ayurveda deserves scientific rigor.
