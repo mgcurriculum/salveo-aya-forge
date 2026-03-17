@@ -29,14 +29,6 @@ const AboutUsPage = () => {
       <Header />
       
       <main className="relative">
-        <div className="absolute top-32 left-4 md:left-8 lg:left-12 z-20">
-          <button 
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white/60 hover:text-white transition-all group"
-          >
-            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" /> Back
-          </button>
-        </div>
         {/* 1) Hero Banner */}
         <section className="relative h-[60vh] flex items-center justify-center overflow-hidden bg-[#1A2E35]">
           <div className="absolute inset-0 opacity-40">

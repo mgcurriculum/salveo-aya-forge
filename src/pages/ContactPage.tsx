@@ -15,6 +15,7 @@ import {
   Phone
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 const ContactPage = () => {
   const [formState, setFormState] = useState<'idle' | 'submitting' | 'success'>('idle');
@@ -23,7 +24,13 @@ const ContactPage = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setFormState('submitting');
-    setTimeout(() => setFormState('success'), 1500);
+    setTimeout(() => {
+      setFormState('success');
+      toast.success("Message sent successfully!", {
+        description: "We've received your inquiry and will get back to you soon.",
+        className: "font-sans-clean",
+      });
+    }, 1500);
   };
 
   const contactRoutes = [
@@ -58,11 +65,11 @@ const ContactPage = () => {
         {/* HERO SECTION */}
         <section className="relative pt-16 pb-12 md:pt-20 md:pb-16 overflow-hidden">
           <div className="absolute inset-0 bg-white">
-            <img 
+            {/* <img 
               src="/C:/Users/Admin/.gemini/antigravity/brain/81674a61-4351-4cc1-be3e-ca84fc1e49a0/salmara_contact_bg_1773572963140.png" 
               className="absolute inset-0 w-full h-full object-cover opacity-10 grayscale" 
               alt="Soft focus background"
-            />
+            /> */}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#FDFBF7]/80 to-[#FDFBF7]" />
           </div>
           
@@ -288,6 +295,29 @@ const ContactPage = () => {
                               placeholder="name@example.com"
                               className="w-full px-6 py-4 bg-[#F8F9FA] border border-[#F2EDE4] rounded-2xl text-sm font-sans-clean focus:outline-none focus:border-[#5A7A5C] transition-colors"
                             />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold uppercase tracking-widest text-[#1A2E35]/40 ml-1">Phone Number</label>
+                            <input 
+                              type="tel" 
+                              required
+                              placeholder="e.g. +91 99999 99999"
+                              className="w-full px-6 py-4 bg-[#F8F9FA] border border-[#F2EDE4] rounded-2xl text-sm font-sans-clean focus:outline-none focus:border-[#5A7A5C] transition-colors"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-bold uppercase tracking-widest text-[#1A2E35]/40 ml-1">Category of Query</label>
+                            <select 
+                              required
+                              className="w-full px-6 py-4 bg-[#F8F9FA] border border-[#F2EDE4] rounded-2xl text-sm font-sans-clean focus:outline-none focus:border-[#5A7A5C] transition-colors appearance-none cursor-pointer"
+                            >
+                              <option value="" disabled selected>Select Category</option>
+                              <option value="product">Product Inquiry</option>
+                              <option value="order">Order/Shipping</option>
+                              <option value="clinic">Consultation / Clinic</option>
+                              <option value="partnership">Affiliate / Business Partnership</option>
+                              <option value="feedback">Feedback / Suggestion</option>
+                            </select>
                           </div>
                         </div>
                         

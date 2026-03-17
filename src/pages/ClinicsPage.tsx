@@ -129,17 +129,8 @@ const ClinicsPage = () => {
       <Header />
       
       <main className="relative">
-        <div className="absolute top-32 left-4 md:left-8 lg:left-12 z-20">
-          <button 
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#1A2E35]/40 hover:text-[#1A2E35] transition-all group"
-          >
-            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" /> Back
-          </button>
-        </div>
-
         {/* 1) Hero Section */}
-        <section className="relative pt-24 pb-16 md:pt-32 md:pb-24 bg-[#F2EDE4] overflow-hidden">
+        <section className="relative pt-12 pb-16 md:pt-16 md:pb-24 bg-[#F2EDE4] overflow-hidden">
           <div className="absolute top-0 right-0 w-1/2 h-full hidden lg:block">
             <img 
               // src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?q=80&w=2080&auto=format&fit=crop" 

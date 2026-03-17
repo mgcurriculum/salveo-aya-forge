@@ -33,7 +33,7 @@ const IngredientHighlights = () => {
   const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section className="py-24 bg-white" ref={ref}>
+    <section className="pt-12 pb-24 bg-white" ref={ref}>
       <div className="container mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

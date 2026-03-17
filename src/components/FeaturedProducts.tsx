@@ -71,7 +71,7 @@ const FeaturedProducts = () => {
   const marqueeProducts = [...products, ...products, ...products];
 
   return (
-    <section id="products" className="py-24 bg-[#FDFBF7] overflow-hidden" ref={ref}>
+    <section id="products" className="pt-24 pb-12 bg-[#FDFBF7] overflow-hidden" ref={ref}>
       <div className="container mx-auto px-4 text-center mb-16">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -256,13 +256,12 @@ const FeaturedProducts = () => {
         </div>
       )}
 
-      <div className="mt-16 flex flex-col items-center">
+      <div className="mt-10 flex flex-col items-center">
         <Link 
           to="/shop" 
-          className="group flex flex-col items-center gap-2 text-[#C5A059] hover:text-[#5A7A5C] transition-colors"
+          className="bg-[#5A7A5C] text-white px-8 py-3.5 rounded-full font-bold uppercase tracking-widest text-[10px] hover:bg-[#1A2E35] transition-all shadow-lg shadow-[#5A7A5C]/20"
         >
-          <span className="text-[10px] font-bold uppercase tracking-[0.4em]">View Full Catalog</span>
-          <div className="w-10 h-1 bg-[#F2EDE4] group-hover:w-20 transition-all duration-500" />
+          View All Products
         </Link>
       </div>
     </section>

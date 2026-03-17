@@ -90,19 +90,19 @@ const HeroSection = () => {
 
       {/* Main Content Overlay */}
       <div className="container mx-auto px-4 relative z-10">
-        <div className="max-w-7xl">
+        <div className="max-w-7xl lg:pr-32 xl:pr-48">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.2 }}
           >
-            <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-[80px] xl:text-[95px] font-display font-medium text-white leading-tight mb-8 drop-shadow-2xl">
+            <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-[72px] xl:text-[84px] font-display font-medium text-white leading-tight mb-8 drop-shadow-2xl">
               <span className="inline-block">Rooted in Ayurveda.</span>
               <br />
               <span className="italic inline-block text-[#C5A059]">Refined by Science.</span>
             </h1>
             
-            <p className="text-white/90 text-lg md:text-2xl font-body leading-relaxed mb-12 max-w-2xl drop-shadow-lg">
+            <p className="text-white/90 text-lg md:text-2xl font-body leading-relaxed mb-12 max-w-xl md:max-w-2xl drop-shadow-lg">
               Unlock the power of ancestral formulations with modern quality standards. 
               Pure ingredients, proven results.
             </p>
