@@ -445,7 +445,16 @@ export function formatCheckoutUrl(checkoutUrl: string): string {
     if (!url.hostname.endsWith('.myshopify.com')) {
       url.hostname = storeDomain;
     }
+    
+    // Add channel and return_to parameters to ensure correct redirection from Shopify's login link on checkout
     url.searchParams.set('channel', 'online_store');
+    
+    // Use the current origin as the return-to point for login/account links on checkout
+    if (typeof window !== 'undefined') {
+      const returnUrl = `${window.location.origin}/dashboard`;
+      url.searchParams.set('return_to', returnUrl);
+    }
+    
     return url.toString();
   } catch {
     return checkoutUrl;
