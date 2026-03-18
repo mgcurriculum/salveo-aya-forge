@@ -42,7 +42,9 @@ const Header = () => {
   const [authView, setAuthView] = useState<"login" | "register">("login");
   const [user, setUser] = useState<any>(null);
   const navigate = useNavigate();
-  const { setUserId } = useWishlistStore();
+  const { setUserId, getWishlist } = useWishlistStore();
+  const wishlistItems = getWishlist();
+  const wishlistCount = wishlistItems.length;
 
   const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement> | null, href: string) => {
     const hash = href.includes("#") ? `#${href.split("#")[1]}` : href;
@@ -304,6 +306,11 @@ const Header = () => {
               aria-label="Wishlist"
             >
               <Heart className="h-5 w-5 group-hover:scale-110 transition-transform" />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-sans-clean font-bold rounded-full h-4 w-4 flex items-center justify-center animate-in zoom-in duration-300">
+                  {wishlistCount}
+                </span>
+              )}
             </Link>
 
             <CartDrawer />
