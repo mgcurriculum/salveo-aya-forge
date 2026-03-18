@@ -440,7 +440,7 @@ export async function loginShopifyCustomer(email: string, password: string) {
 export function formatCheckoutUrl(checkoutUrl: string): string {
   try {
     const url = new URL(checkoutUrl);
-    // Replace any non-Shopify domain (e.g. lovable.app) with the actual store domain
+    // Replace any external hostname with the actual store domain if necessary
     const storeDomain = SHOPIFY_STORE_PERMANENT_DOMAIN;
     if (!url.hostname.endsWith('.myshopify.com')) {
       url.hostname = storeDomain;

@@ -1,92 +1,62 @@
-# Welcome to your Lovable project
+# Salmara - Authentic Ayurveda Storefront
 
-## Project info
+Salmara is a modern, high-end Ayurvedic e-commerce platform built with React and integrated directly with Shopify.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Project Architecture
 
-## How can I edit this code?
+- **Frontend**: React and Vite for a lightning-fast development experience.
+- **Styling**: Tailwind CSS for responsive and premium design.
+- **State Management**: Zustand for cart and wishlist persistence.
+- **Backend/CMS**: Shopify Storefront API for products, categories, and secure checkout.
+- **Authentication**: Custom authentication bridge via Shopify Customer API.
 
-There are several ways of editing your application.
+## Getting Started
 
-**Use Lovable**
+Follow these steps to set up the project locally:
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+### Prerequisites
 
-Changes made via Lovable will be committed automatically to this repo.
+- Node.js (v18 or higher)
+- npm or bun
 
-**Use your preferred IDE**
+### Installation
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+1. Clone the repository.
+2. Install dependencies:
+   ```sh
+   npm install
+   ```
+3. Set up your environment variables in a `.env` file (see `.env.example`).
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Development
 
-Follow these steps:
-
+Start the development server:
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Build
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-- **Shopify Storefront API** (for Commerce & Authentication)
+Create a production-ready build:
+```sh
+npm run build
+```
 
 ## Shopify Configuration
 
-This project uses the Shopify Storefront API. Configuration is handled via environment variables in your `.env` file:
+Configuration is handled via environment variables:
 
 ```env
 VITE_SHOPIFY_STOREFRONT_TOKEN=your_token
 VITE_SHOPIFY_STORE_DOMAIN=your_store.myshopify.com
 VITE_SHOPIFY_API_VERSION=2025-07
+SHOPIFY_ADMIN_API_ACCESS_TOKEN=your_admin_token
 ```
 
 > [!IMPORTANT]
-> **Storefront API Permissions Required**:
-> To enable Login and Registration flow, you MUST check the **`unauthenticated_write_customers`** scope in your Shopify App configuration under the **Storefront API** section (not Admin API).
+> **Storefront API Permissions**:
+> Ensure the **`unauthenticated_write_customers`** scope is enabled in your Shopify App settings.
 
-## Project History
+## License
 
-For a detailed list of recent changes and feature implementations, see the [CHANGELOG.md](file:///g:/Salmara-mar11-lovABLE/salveo-aya-forge/CHANGELOG.md).
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+© 2026 Salmara. All rights reserved.
