@@ -3,20 +3,22 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { ShoppingCart, Minus, Plus, Trash2, ExternalLink, Loader2 } from "lucide-react";
 import { useCartStore } from "@/stores/cartStore";
 import { formatCheckoutUrl } from "@/lib/shopify";
+import { toast } from "sonner";
 
 export const CartDrawer = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { items, isLoading, isSyncing, updateQuantity, removeItem, getCheckoutUrl, syncCart } = useCartStore();
+  const { items, isLoading, updateQuantity, removeItem, checkout, syncCart } = useCartStore();
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = items.reduce((sum, item) => sum + (parseFloat(item.price.amount) * item.quantity), 0);
 
   useEffect(() => { if (isOpen) syncCart(); }, [isOpen, syncCart]);
 
-  const handleCheckout = () => {
-    const checkoutUrl = getCheckoutUrl();
+  const handleCheckout = async () => {
+    const checkoutUrl = await checkout();
     if (checkoutUrl) {
-      // Use same flow as Buy Now — redirect directly to Shopify checkout
       window.location.href = formatCheckoutUrl(checkoutUrl);
+    } else {
+      toast.error("Checkout failed. Please try again.");
     }
   };
 
@@ -94,10 +96,10 @@ export const CartDrawer = () => {
                 </div>
                 <button
                   onClick={handleCheckout}
-                  disabled={isLoading || isSyncing}
+                  disabled={isLoading}
                   className="w-full bg-primary hover:bg-herbal-dark text-primary-foreground py-3 rounded-lg font-sans-clean font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
                 >
-                  {isLoading || isSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <><ExternalLink className="w-4 h-4" /> Checkout with Shopify</>}
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><ExternalLink className="w-4 h-4" /> Checkout with Shopify</>}
                 </button>
               </div>
             </>

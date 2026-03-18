@@ -19,7 +19,7 @@ import {
   Star
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { fetchProducts, createShopifyCart, type ShopifyProduct } from "@/lib/shopify";
+import { type ShopifyProduct, createStorefrontCheckout } from "@/lib/shopify";
 import { fetchProductsViaAdmin } from "@/lib/shopifyAdmin";
 import { useCartStore } from "@/stores/cartStore";
 import { useWishlistStore } from "@/stores/wishlistStore";
@@ -35,6 +35,8 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuLabel
 } from "@/components/ui/dropdown-menu";
+// Assuming getStoredSession is available or will be added - REMOVED as no longer needed
+// import { getStoredSession } from "@/lib/shopify"; 
 
 const concerns = [
   { id: "pain", title: "Pain & Mobility", desc: "For muscle relief, joints, and inflammation support." },
@@ -182,18 +184,25 @@ const ShopPage = () => {
 
   const handleBuyNow = async (product: ShopifyProduct) => {
     const variant = product.node.variants.edges[0]?.node;
-    if (!variant) return;
+    if (!variant) {
+      console.error("No variant found for product:", product.node.title);
+      toast.error("Product unavailable", { description: "This product has no available variants." });
+      return;
+    }
     
+    console.log("Buy Now started for:", product.node.title, "Variant ID:", variant.id);
     setBuyingId(product.node.id);
+    
     try {
-      const cartData = await createShopifyCart({
-        variantId: variant.id,
-        quantity: 1
-      });
-      
-      if (cartData?.checkoutUrl) {
-        window.location.href = cartData.checkoutUrl;
+      const result = await createStorefrontCheckout(
+        [{ variantId: variant.id, quantity: 1 }]
+      );
+
+      if (result) {
+        console.log("Buy Now redirecting to:", result);
+        window.location.href = result;
       } else {
+        console.error("Buy Now: No result URL returned");
         toast.error("Checkout failed", { description: "Could not generate checkout link. Please try adding to cart." });
       }
     } catch (error) {
@@ -550,12 +559,16 @@ const ShopPage = () => {
                             </Link>
                           </div>
                           <button
-                            onClick={() => handleBuyNow(product)}
-                            disabled={!variant?.availableForSale || addingId === product.node.id || buyingId === product.node.id}
-                            className="w-full border-2 border-[#1A2E35] text-[#1A2E35] py-2.5 rounded-lg font-sans-clean text-[10px] font-bold uppercase tracking-wider hover:bg-[#1A2E35] hover:text-white transition-all disabled:opacity-50 disabled:bg-[#f2f2f2] disabled:border-gray-300 disabled:text-gray-400 flex items-center justify-center"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleBuyNow(product);
+                            }}
+                            disabled={buyingId === product.node.id || !variant?.availableForSale}
+                            className="w-full border-2 border-[#1A2E35] text-[#1A2E35] py-2.5 rounded-lg font-sans-clean text-[10px] font-bold uppercase tracking-wider hover:bg-[#1A2E35] hover:text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                           >
-                            {buyingId === product.node.id ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
-                            {buyingId === product.node.id ? "Preparing..." : (!variant?.availableForSale ? "Out of Stock" : "Buy Now Direct")}
+                            {buyingId === product.node.id ? <Loader2 className="h-3.3 w-3.5 animate-spin" /> : null}
+                            {buyingId === product.node.id ? "Redirecting..." : (!variant?.availableForSale ? "Sold Out" : "Buy Now Direct")}
                           </button>
                         </div>
                       </div>

@@ -80,6 +80,21 @@ const CUSTOMER_INVITE_MUTATION = `
   }
 `;
 
+const DRAFT_ORDER_CREATE_MUTATION = `
+  mutation draftOrderCreate($input: DraftOrderInput!) {
+    draftOrderCreate(input: $input) {
+      draftOrder {
+        id
+        invoiceUrl
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
 const CUSTOMER_ORDERS_QUERY = `
   query getCustomerOrders($id: ID!) {
     customer(id: $id) {
@@ -408,6 +423,13 @@ export async function fetchProductsViaAdmin(first = 20): Promise<any[]> {
               availableForSale: vEdge.node.inventoryQuantity > 0
             }
           }))
+        },
+        // Add priceRange for compatibility with Storefront types
+        priceRange: {
+          minVariantPrice: {
+            amount: edge.node.variants.edges[0]?.node.price || "0",
+            currencyCode: "INR"
+          }
         }
       }
     }));
@@ -441,10 +463,87 @@ export async function fetchProductByHandleViaAdmin(handle: string): Promise<any 
             availableForSale: vEdge.node.inventoryQuantity > 0
           }
         }))
+      },
+      // Add priceRange for compatibility with Storefront types
+      priceRange: {
+        minVariantPrice: {
+          amount: product.variants.edges[0]?.node.price || "0",
+          currencyCode: "INR"
+        }
       }
     };
   } catch (error) {
     console.error("Error fetching product by handle via Admin API:", error);
     return null;
+  }
+}
+/**
+ * Generate a fresh Storefront Access Token via the Admin API.
+ * This ensures we have a valid token even if the .env one is expired or invalid.
+ */
+export async function createStorefrontTokenViaAdmin(title = "Vite App Token"): Promise<string | null> {
+  const query = `
+    mutation storefrontAccessTokenCreate($input: StorefrontAccessTokenInput!) {
+      storefrontAccessTokenCreate(input: $input) {
+        storefrontAccessToken {
+          accessToken
+        }
+        userErrors {
+          field
+          message
+        }
+      }
+    }
+  `;
+  
+  try {
+    const data = await adminApiRequest(query, {
+      input: { title }
+    });
+    
+    const userErrors = data?.data?.storefrontAccessTokenCreate?.userErrors || [];
+    if (userErrors.length > 0) {
+      console.error("Storefront token creation error:", userErrors);
+      return null;
+    }
+    
+    return data?.data?.storefrontAccessTokenCreate?.storefrontAccessToken?.accessToken || null;
+  } catch (error) {
+    console.error("Failed to create storefront token:", error);
+    return null;
+  }
+}
+
+/**
+ * Create a draft order via the Admin API to generate a checkout (invoice) URL.
+ */
+export async function createDraftOrderViaAdmin(lineItems: Array<{ variantId: string; quantity: number }>, customerId?: string): Promise<{ success: boolean; invoiceUrl?: string; errors?: any[] }> {
+  try {
+    const data = await adminApiRequest(DRAFT_ORDER_CREATE_MUTATION, {
+      input: {
+        lineItems: lineItems.map(item => ({
+          variantId: item.variantId,
+          quantity: item.quantity
+        })),
+        customerId: customerId || undefined,
+        useCustomerDefaultAddress: !!customerId
+      },
+    });
+
+    if (data?.errors) {
+      return { success: false, errors: data.errors };
+    }
+
+    const userErrors = data?.data?.draftOrderCreate?.userErrors || [];
+    if (userErrors.length > 0) {
+      return { success: false, errors: userErrors };
+    }
+
+    return { 
+      success: true, 
+      invoiceUrl: data.data.draftOrderCreate.draftOrder.invoiceUrl 
+    };
+  } catch (error: any) {
+    return { success: false, errors: [{ message: error.message }] };
   }
 }

@@ -2,7 +2,8 @@ import { motion, useInView } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
 import { Leaf, Loader2, Star, Trophy, ShieldCheck, Sparkles, ArrowRight, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
-import { fetchProducts, type ShopifyProduct } from "@/lib/shopify";
+import { type ShopifyProduct } from "@/lib/shopify";
+import { fetchProductsViaAdmin } from "@/lib/shopifyAdmin";
 import { useCartStore } from "@/stores/cartStore";
 import { useWishlistStore } from "@/stores/wishlistStore";
 import { toast } from "sonner";
@@ -17,7 +18,7 @@ const ProductList = () => {
   const { toggleItem, isInWishlist } = useWishlistStore();
 
   useEffect(() => {
-    fetchProducts(8) // Fetch top 8 products for the home page list
+    fetchProductsViaAdmin(8) // Fetch top 8 products for the home page list
       .then(setProducts)
       .catch(console.error)
       .finally(() => setLoading(false));

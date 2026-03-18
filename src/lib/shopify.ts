@@ -1,9 +1,26 @@
 import { toast } from "sonner";
+import { createStorefrontTokenViaAdmin } from './shopifyAdmin';
 
-const SHOPIFY_API_VERSION = import.meta.env.VITE_SHOPIFY_API_VERSION || '2025-07';
+// Using modern Cart API instead of deprecated checkoutCreate
+export const CART_CHECKOUT_URL_MUTATION = `
+  mutation cartCreate($input: CartInput!) {
+    cartCreate(input: $input) {
+      cart {
+        id
+        checkoutUrl
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+const SHOPIFY_API_VERSION = import.meta.env.VITE_SHOPIFY_API_VERSION || '2024-10';
 const SHOPIFY_STORE_PERMANENT_DOMAIN = import.meta.env.VITE_SHOPIFY_STORE_DOMAIN || 'salveo-aya-forge-rt8fh.myshopify.com';
 const SHOPIFY_STOREFRONT_URL = `https://${SHOPIFY_STORE_PERMANENT_DOMAIN}/api/${SHOPIFY_API_VERSION}/graphql.json`;
-const SHOPIFY_STOREFRONT_TOKEN = import.meta.env.VITE_SHOPIFY_STOREFRONT_TOKEN || '90998efe73886b30801f7074707bc883';
+let SHOPIFY_STOREFRONT_TOKEN = (typeof localStorage !== 'undefined' ? localStorage.getItem('salmara_storefront_token') : null) || import.meta.env.VITE_SHOPIFY_STOREFRONT_TOKEN || '90998efe73886b30801f7074707bc883';
 
 export interface ShopifyProduct {
   node: {
@@ -52,7 +69,7 @@ export interface ShopifyProduct {
 }
 
 export async function storefrontApiRequest(query: string, variables: Record<string, unknown> = {}) {
-  const response = await fetch(SHOPIFY_STOREFRONT_URL, {
+  const fetchOptions = () => ({
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -60,6 +77,35 @@ export async function storefrontApiRequest(query: string, variables: Record<stri
     },
     body: JSON.stringify({ query, variables }),
   });
+
+  let response = await fetch(SHOPIFY_STOREFRONT_URL, fetchOptions());
+
+  // Handle Unauthorized (401) or GraphQL UNAUTHORIZED extension
+  const checkUnauthorized = async (res: Response, data?: any) => {
+    return res.status === 401 || (data?.errors?.some((e: any) => 
+      e.extensions?.code === 'UNAUTHORIZED' || 
+      e.extensions?.code === 'ACCESS_DENIED' ||
+      e.message?.toLowerCase().includes('access denied') ||
+      e.message?.toLowerCase().includes('unauthorized')
+    ));
+  };
+
+  let data = await response.json();
+
+  if (await checkUnauthorized(response, data)) {
+    console.warn("Storefront token unauthorized. Attempting to refresh via Admin API...");
+    const newToken = await createStorefrontTokenViaAdmin();
+    if (newToken) {
+      SHOPIFY_STOREFRONT_TOKEN = newToken;
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('salmara_storefront_token', newToken);
+      }
+      console.log("Storefront token refreshed and persisted successfully.");
+      // Retry the request once with the new token
+      response = await fetch(SHOPIFY_STOREFRONT_URL, fetchOptions());
+      data = await response.json();
+    }
+  }
 
   if (response.status === 402) {
     toast.error("Shopify: Payment required", {
@@ -72,13 +118,40 @@ export async function storefrontApiRequest(query: string, variables: Record<stri
     throw new Error(`HTTP error! status: ${response.status}`);
   }
 
-  const data = await response.json();
   if (data.errors) {
     const errorMessages = data.errors.map((e: { message: string }) => e.message).join(', ');
     console.error('Shopify Storefront API Error:', errorMessages);
     return data;
   }
+
   return data;
+}
+
+export async function createStorefrontCheckout(lineItems: Array<{ variantId: string; quantity: number }>): Promise<string | null> {
+  try {
+    const data = await storefrontApiRequest(CART_CHECKOUT_URL_MUTATION, {
+      input: {
+        lines: lineItems.map(item => ({
+          merchandiseId: item.variantId,
+          quantity: item.quantity
+        }))
+      }
+    });
+
+    const userErrors = data?.data?.cartCreate?.userErrors || [];
+    if (userErrors.length > 0) {
+      console.error('Cart checkout creation errors:', JSON.stringify(userErrors, null, 2));
+      const message = userErrors.map((e: any) => e.message).join(', ');
+      toast.error("Checkout selection error", { description: message });
+      return null;
+    }
+
+    const checkoutUrl = data?.data?.cartCreate?.cart?.checkoutUrl;
+    return checkoutUrl ? formatCheckoutUrl(checkoutUrl) : null;
+  } catch (error) {
+    console.error('Failed to create cart checkout:', error);
+    return null;
+  }
 }
 
 // Queries

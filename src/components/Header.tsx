@@ -5,7 +5,8 @@ import { AuthModal } from "@/components/AuthModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
-import { getStoredSession, clearSession, getValidCustomerToken, fetchProducts, type ShopifyProduct } from "@/lib/shopify";
+import { getStoredSession, clearSession, getValidCustomerToken, type ShopifyProduct } from "@/lib/shopify";
+import { fetchProductsViaAdmin } from "@/lib/shopifyAdmin";
 import { useCartStore } from "@/stores/cartStore";
 import { useNavigate } from "react-router-dom";
 import { useWishlistStore } from "@/stores/wishlistStore";
@@ -120,7 +121,7 @@ const Header = () => {
   // Fetch products for search cache
   useEffect(() => {
     if (searchOpen && allProducts.length === 0) {
-      fetchProducts(50).then(setAllProducts).catch(console.error);
+      fetchProductsViaAdmin(50).then(setAllProducts).catch(console.error);
     }
   }, [searchOpen, allProducts]);
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { createShopifyCart } from "@/lib/shopify";
 import { fetchProductByHandleViaAdmin } from "@/lib/shopifyAdmin";
+import { createStorefrontCheckout } from "@/lib/shopify";
 import { useCartStore } from "@/stores/cartStore";
 import { 
   ArrowLeft, 
@@ -206,13 +206,12 @@ const ProductDetail = () => {
     
     setIsBuyingNow(true);
     try {
-      const cartData = await createShopifyCart({
-        variantId: selectedVariant.id,
-        quantity: quantity
-      });
+      const result = await createStorefrontCheckout(
+        [{ variantId: selectedVariant.id, quantity: quantity }]
+      );
       
-      if (cartData?.checkoutUrl) {
-        window.location.href = cartData.checkoutUrl;
+      if (result) {
+        window.location.assign(result);
       } else {
         toast.error("Checkout failed", { description: "Could not generate checkout link. Please try adding to cart." });
       }
@@ -450,10 +449,10 @@ const ProductDetail = () => {
                 <button 
                   onClick={handleBuyNow}
                   disabled={isBuyingNow || !selectedVariant?.availableForSale}
-                  className="w-full border-2 border-[#1A2E35] text-[#1A2E35] py-5 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-[#1A2E35] hover:text-white transition-all disabled:opacity-50 disabled:bg-[#f2f2f2] disabled:border-gray-200 disabled:text-gray-400 flex items-center justify-center"
+                  className="w-full border-2 border-[#1A2E35] text-[#1A2E35] py-5 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-[#1A2E35] hover:text-white transition-all disabled:opacity-50 disabled:bg-[#f2f2f2] disabled:border-gray-200 disabled:text-gray-400 flex items-center justify-center gap-2"
                 >
-                  {isBuyingNow ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  {isBuyingNow ? "Preparing Checkout..." : (!selectedVariant?.availableForSale ? "Out of Stock" : "Buy Now Direct")}
+                  {isBuyingNow ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  {isBuyingNow ? "Redirecting..." : (!selectedVariant?.availableForSale ? "Sold Out" : "Buy Now Direct")}
                 </button>
                 
               </div>

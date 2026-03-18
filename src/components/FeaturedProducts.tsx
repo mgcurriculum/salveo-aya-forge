@@ -2,7 +2,8 @@ import { motion, useInView } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
 import { ShoppingCart, Leaf, Loader2, Star, Trophy, ShieldCheck, Sparkles, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
-import { fetchProducts, createShopifyCart, type ShopifyProduct } from "@/lib/shopify";
+import { type ShopifyProduct, getStoredSession, createStorefrontCheckout } from "@/lib/shopify";
+import { fetchProductsViaAdmin } from "@/lib/shopifyAdmin";
 import { useCartStore } from "@/stores/cartStore";
 import { useWishlistStore } from "@/stores/wishlistStore";
 import { toast } from "sonner";
@@ -18,7 +19,7 @@ const FeaturedProducts = () => {
   const { toggleItem, isInWishlist } = useWishlistStore();
 
   useEffect(() => {
-    fetchProducts(12)
+    fetchProductsViaAdmin(12)
       .then(setProducts)
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -46,16 +47,19 @@ const FeaturedProducts = () => {
 
   const handleBuyNow = async (product: ShopifyProduct) => {
     const variant = product.node.variants.edges[0]?.node;
-    if (!variant) return;
+    if (!variant) {
+      toast.error("Product unavailable", { description: "No available variants found." });
+      return;
+    }
     
     setBuyingId(product.node.id);
     try {
-      const cartData = await createShopifyCart({
-        variantId: variant.id,
-        quantity: 1
-      });
-      if (cartData?.checkoutUrl) {
-        window.location.href = cartData.checkoutUrl;
+      const result = await createStorefrontCheckout(
+        [{ variantId: variant.id, quantity: 1 }]
+      );
+      
+      if (result) {
+        window.location.assign(result);
       } else {
         toast.error("Checkout failed", { description: "Could not generate checkout link." });
       }
@@ -241,10 +245,16 @@ const FeaturedProducts = () => {
                           {addingId === product.node.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Add to Cart"}
                         </button>
                         <button
-                          onClick={() => handleBuyNow(product)}
-                          className="flex-1 border border-[#1A2E35]/10 text-[#1A2E35] py-3 rounded-xl font-sans-clean text-[10px] font-bold uppercase tracking-widest hover:bg-[#FDFBF7] transition-all"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleBuyNow(product);
+                          }}
+                          disabled={buyingId === product.node.id || !variant?.availableForSale}
+                          className="flex-1 border border-[#1A2E35]/10 text-[#1A2E35] py-3 rounded-xl font-sans-clean text-[10px] font-bold uppercase tracking-widest hover:bg-[#FDFBF7] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                         >
-                          Buy Now
+                          {buyingId === product.node.id ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                          {buyingId === product.node.id ? "Redirecting..." : (!variant?.availableForSale ? "Sold Out" : "Buy Now")}
                         </button>
                       </div>
                     </div>
