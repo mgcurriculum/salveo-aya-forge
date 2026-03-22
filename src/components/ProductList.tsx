@@ -2,7 +2,7 @@ import { motion, useInView } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
 import { Leaf, Loader2, Star, Trophy, ShieldCheck, Sparkles, ArrowRight, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
-import { type ShopifyProduct } from "@/lib/shopify";
+import { type ShopifyProduct } from "@/lib/shopifyAdmin";
 import { fetchProductsViaAdmin } from "@/lib/shopifyAdmin";
 import { useCartStore } from "@/stores/cartStore";
 import { useWishlistStore } from "@/stores/wishlistStore";
@@ -144,10 +144,10 @@ const ProductList = () => {
                     
                     {/* Wishlist Button */}
                     <button 
-                      onClick={(e) => {
+                      onClick={async (e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        if (variant) toggleItem(product, variant.id);
+                        if (variant) await toggleItem(product, variant.id);
                       }}
                       className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-md border transition-all z-20 ${
                         variant && isInWishlist(variant.id) 

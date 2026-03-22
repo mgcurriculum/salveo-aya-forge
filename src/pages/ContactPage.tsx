@@ -202,7 +202,7 @@ const ContactPage = () => {
                     </div>
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-widest text-[#1A2E35]/40 mb-1">Direct Email</p>
-                      <p className="text-[#1A2E35] font-display font-medium">wellness@salmara.com</p>
+                      <p className="text-[#1A2E35] font-sans-clean font-medium">wellness@salmara.com</p>
                     </div>
                   </div>
                   
@@ -212,7 +212,7 @@ const ContactPage = () => {
                     </div>
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-widest text-[#1A2E35]/40 mb-1">Clinic Concierge</p>
-                      <p className="text-[#1A2E35] font-display font-medium">+91 80 4932 2300</p>
+                      <p className="text-[#1A2E35] font-sans-clean font-medium">+91 80 4932 2300</p>
                     </div>
                   </div>
                   
@@ -222,7 +222,7 @@ const ContactPage = () => {
                     </div>
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-widest text-[#1A2E35]/40 mb-1">Response Time</p>
-                      <p className="text-[#1A2E35] font-display font-medium">Within 24 Business Hours</p>
+                      <p className="text-[#1A2E35] font-sans-clean font-medium">Within 24 Business Hours</p>
                     </div>
                   </div>
                 </div>
@@ -376,41 +376,6 @@ const ContactPage = () => {
               </Link>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-8">
-              <div className="p-10 rounded-[2.5rem] bg-white border border-[#F2EDE4] flex flex-col md:flex-row gap-8 items-center md:items-start group transition-all hover:bg-[#FDFBF7]">
-                <div className="h-32 w-full md:w-32 bg-[#F2EDE4] rounded-2xl overflow-hidden shrink-0">
-                  <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=300&h=300&auto=format&fit=crop" className="w-full h-full object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" alt="Clinic" />
-                </div>
-                <div>
-                  <h4 className="text-xl font-display font-medium text-[#1A2E35] mb-4">Salmara Wellness Center</h4>
-                  <p className="text-xs text-[#1A2E35]/50 leading-relaxed font-sans-clean mb-6">Indiranagar, Bengaluru, KA. <br />Mon-Sat: 09:00 AM - 08:00 PM</p>
-                  <a 
-                    href="https://www.google.com/maps/search/?api=1&query=Salmara+Wellness+Center+Indiranagar+Bengaluru" 
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[#C5A059]"
-                  >
-                    Get Directions <MapPin className="h-3 w-3" />
-                  </a>
-                </div>
-              </div>
-
-              <div className="p-10 rounded-[2.5rem] bg-[#1A2E35] text-white flex flex-col md:flex-row gap-8 items-center md:items-start">
-                <div className="h-32 w-full md:w-32 bg-white/10 rounded-2xl flex items-center justify-center shrink-0">
-                  <Clock className="h-10 w-10 text-white/20" />
-                </div>
-                <div>
-                  <h4 className="text-xl font-display font-medium text-white mb-4">24/7 Virtual Clinic</h4>
-                  <p className="text-xs text-white/50 leading-relaxed font-sans-clean mb-6">Expert consultations from the comfort of your home. Consult across all time zones.</p>
-                  <Link 
-                    to="/clinics"
-                    className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[#C5A059]"
-                  >
-                    Book Virtual Visit <ArrowRight className="h-3 w-3" />
-                  </Link>
-                </div>
-              </div>
-            </div>
           </div>
         </section>
       </main>

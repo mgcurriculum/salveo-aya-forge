@@ -37,7 +37,7 @@ const ClinicsPage = () => {
   const clinics = [
     {
       id: 1,
-      name: "Salmara Ayurveda - Rajajinagar",
+      name: "Salmara Ayurveda - Bangalore",
       address: "Bangalore - Rajajinagar / ಬೆಂಗಳೂರು - ರಾಜಾಜಿನಗರ",
       googleMapsUrl: "https://maps.app.goo.gl/1Eo81kBhyswaBi1W6",
       embedQuery: "Salmara+Ayurveda+Rajajinagar+Bangalore",
@@ -61,7 +61,7 @@ const ClinicsPage = () => {
     },
     {
       id: 3,
-      name: "Salmara Ayurveda - Saraswatipuram",
+      name: "Salmara Ayurveda - Mysore",
       address: "Mysore - Saraswatipuram / ಮೈಸೂರು - ಸರಸ್ವತೀಪುರಂ",
       googleMapsUrl: "https://maps.app.goo.gl/XRr29xvW9GJF3QDH6",
       embedQuery: "Salmara+Ayurveda+Saraswatipuram+Mysore",
@@ -73,7 +73,7 @@ const ClinicsPage = () => {
     },
     {
       id: 4,
-      name: "Salmara Ayurveda - Vidyanagar",
+      name: "Salmara Ayurveda - Hubli",
       address: "Hubli - Vidyanagar / ಹುಬ್ಬಳ್ಳಿ - ವಿದ್ಯಾನಗರ",
       googleMapsUrl: "https://maps.app.goo.gl/v1Gz1a5R36etHVoY9",
       embedQuery: "Salmara+Ayurveda+Vidyanagar+Hubli",
@@ -86,7 +86,7 @@ const ClinicsPage = () => {
     {
       id: 5,
       name: "Salmara Virtual Clinic",
-      address: "Online / Video Consultation",
+      address: "Online - Consultation",
       googleMapsUrl: "https://wa.me/919353436373",
       embedQuery: "India",
       hours: "10:00 AM – 1:00 PM, 3:00 PM – 6:00 PM",

@@ -21,7 +21,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const adminToken = process.env.SHOPIFY_ADMIN_API_ACCESS_TOKEN;
-    const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN || "salveo-aya-forge-rt8fh.myshopify.com";
+    const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN ;
     const apiVersion = process.env.VITE_SHOPIFY_API_VERSION || "2025-07";
 
     if (!adminToken || adminToken === "your_admin_api_access_token_here") {

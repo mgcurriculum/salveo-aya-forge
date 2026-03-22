@@ -1,6 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { type ShopifyProduct } from '@/lib/shopify';
+import { 
+  type ShopifyProduct, 
+  fetchCustomerWishlist, 
+  updateCustomerWishlist, 
+  getStoredSession,
+  fetchProductsByVariantIdsViaAdmin 
+} from '@/lib/shopifyAdmin';
+import { toast } from 'sonner';
 
 interface WishlistItem {
   product: ShopifyProduct;
@@ -8,82 +15,103 @@ interface WishlistItem {
 }
 
 interface WishlistState {
-  items: Record<string, WishlistItem[]>; // Keyed by userId or "guest"
-  currentUserId: string;
-  setUserId: (userId: string | null) => void;
-  addItem: (product: ShopifyProduct, variantId: string) => void;
-  removeItem: (variantId: string) => void;
-  toggleItem: (product: ShopifyProduct, variantId: string) => void;
+  items: WishlistItem[];
+  isLoading: boolean;
+  syncWithShopify: () => Promise<void>;
+  addItem: (product: ShopifyProduct, variantId: string) => Promise<void>;
+  removeItem: (variantId: string) => Promise<void>;
+  toggleItem: (product: ShopifyProduct, variantId: string) => Promise<void>;
   isInWishlist: (variantId: string) => boolean;
   clearWishlist: () => void;
-  getWishlist: () => WishlistItem[];
 }
 
 export const useWishlistStore = create<WishlistState>()(
   persist(
     (set, get) => ({
-      items: {},
-      currentUserId: 'guest',
-      
-      setUserId: (userId) => {
-        set({ currentUserId: userId || 'guest' });
-      },
+      items: [],
+      isLoading: false,
 
-      getWishlist: () => {
-        const { items, currentUserId } = get();
-        return items[currentUserId] || [];
-      },
-      
-      addItem: (product, variantId) => {
-        const { items, currentUserId } = get();
-        const userItems = items[currentUserId] || [];
-        
-        if (!userItems.some(item => item.variantId === variantId)) {
+      syncWithShopify: async () => {
+        const session = getStoredSession();
+        if (!session?.user?.id) return;
+
+        set({ isLoading: true });
+        try {
+          const remoteIds = await fetchCustomerWishlist(session.user.id);
+          const currentItems = get().items;
+          
+          // If we have items in remote that aren't in local, fetch them
+          const existingVariantIds = currentItems.map(i => i.variantId);
+          const needsFetching = remoteIds.filter(id => !existingVariantIds.includes(id));
+          
+          let newItems = [...currentItems];
+          if (needsFetching.length > 0) {
+            const fetchedProducts = await fetchProductsByVariantIdsViaAdmin(needsFetching);
+            const fetchedItems = fetchedProducts.map(p => ({
+              product: p,
+              variantId: p.node.variants.edges.find(v => remoteIds.includes(v.node.id))?.node.id || p.node.variants.edges[0].node.id
+            }));
+            newItems = [...newItems, ...fetchedItems];
+          }
+
+          // Filter by remote IDs (to handle removals from other devices)
           set({ 
-            items: { 
-              ...items, 
-              [currentUserId]: [...userItems, { product, variantId }] 
-            } 
+            items: newItems.filter(i => remoteIds.includes(i.variantId))
           });
+        } catch (error) {
+          console.error("Wishlist sync failed:", error);
+        } finally {
+          set({ isLoading: false });
         }
       },
       
-      removeItem: (variantId) => {
-        const { items, currentUserId } = get();
-        const userItems = items[currentUserId] || [];
-        set({ 
-          items: { 
-            ...items, 
-            [currentUserId]: userItems.filter(item => item.variantId !== variantId) 
-          } 
-        });
+      addItem: async (product, variantId) => {
+        const session = getStoredSession();
+        if (!session?.user?.id) {
+          toast.error("Please login to use wishlist");
+          window.location.href = `/login?redirect=wishlist`;
+          return;
+        }
+
+        const { items } = get();
+        if (!items.some(item => item.variantId === variantId)) {
+          const newItems = [...items, { product, variantId }];
+          set({ items: newItems });
+          await updateCustomerWishlist(session.user.id, newItems.map(i => i.variantId));
+          toast.success("Added to wishlist");
+        }
       },
       
-      toggleItem: (product, variantId) => {
+      removeItem: async (variantId) => {
+        const session = getStoredSession();
+        if (!session?.user?.id) return;
+
+        const { items } = get();
+        const newItems = items.filter(item => item.variantId !== variantId);
+        set({ items: newItems });
+        await updateCustomerWishlist(session.user.id, newItems.map(i => i.variantId));
+        toast.info("Removed from wishlist");
+      },
+      
+      toggleItem: async (product, variantId) => {
         const { isInWishlist, addItem, removeItem } = get();
         if (isInWishlist(variantId)) {
-          removeItem(variantId);
+          await removeItem(variantId);
         } else {
-          addItem(product, variantId);
+          await addItem(product, variantId);
         }
       },
       
       isInWishlist: (variantId) => {
-        return get().getWishlist().some(item => item.variantId === variantId);
+        return get().items.some(item => item.variantId === variantId);
       },
       
       clearWishlist: () => {
-        const { items, currentUserId } = get();
-        set({ 
-          items: { 
-            ...items, 
-            [currentUserId]: [] 
-          } 
-        });
+        set({ items: [] });
       },
     }),
     {
-      name: 'salmara-wishlist-v2', // New name to avoid conflicts with old structure
+      name: 'salmara-wishlist-v3',
     }
   )
 );

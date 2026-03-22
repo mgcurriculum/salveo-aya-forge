@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
+import { useEffect } from "react";
 import { Heart, ShoppingBag, Trash2, ArrowRight, Loader2, Star, Leaf } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -7,10 +8,23 @@ import { useWishlistStore } from "@/stores/wishlistStore";
 import { useCartStore } from "@/stores/cartStore";
 import { toast } from "sonner";
 
+import { getStoredSession } from "@/lib/shopifyAdmin";
+import { useNavigate } from "react-router-dom";
+
 const WishlistPage = () => {
-  const { removeItem, clearWishlist, getWishlist } = useWishlistStore();
+  const { items, removeItem, clearWishlist, syncWithShopify, isLoading } = useWishlistStore();
   const { addItem } = useCartStore();
-  const items = getWishlist();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const session = getStoredSession();
+    if (!session?.user?.id) {
+      toast.error("Please login to view your wishlist");
+      navigate("/login?redirect=wishlist");
+      return;
+    }
+    syncWithShopify();
+  }, [syncWithShopify, navigate]);
 
   const handleAddToCart = async (item: any) => {
     const productNode = item.product?.node || item.product; // Support both structures
@@ -67,7 +81,12 @@ const WishlistPage = () => {
           </div>
 
           <AnimatePresence mode="popLayout">
-            {items.length === 0 ? (
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-32">
+                <Loader2 className="h-12 w-12 animate-spin text-[#5A7A5C] mb-4" />
+                <p className="text-[#1A2E35]/40 font-body animate-pulse">Retrieving your favorites...</p>
+              </div>
+            ) : items.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -108,7 +127,7 @@ const WishlistPage = () => {
                       className="bg-white rounded-[2.5rem] p-5 border border-[#F2EDE4] shadow-sm hover:shadow-2xl hover:shadow-[#5A7A5C]/5 transition-all duration-700 group relative"
                     >
                       <button
-                        onClick={() => removeItem(item.variantId)}
+                        onClick={async () => await removeItem(item.variantId)}
                         className="absolute top-8 right-8 z-20 p-3 bg-white/80 backdrop-blur-md rounded-full border border-[#F2EDE4] text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"
                         title="Remove from favorites"
                       >

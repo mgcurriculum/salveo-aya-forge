@@ -1,7 +1,7 @@
 import Dashboard from "@/components/Dashboard";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getStoredSession } from "@/lib/shopify";
+import { getStoredSession } from "@/lib/shopifyAdmin";
 
 const DashboardPage = () => {
   const navigate = useNavigate();

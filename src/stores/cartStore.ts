@@ -3,8 +3,9 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import {
   type ShopifyProduct,
   getStoredSession,
-  createStorefrontCheckout,
-} from '@/lib/shopify';
+  createHybridCheckout,
+  syncCartToShopify,
+} from '@/lib/shopifyAdmin';
 
 export interface CartItem {
   lineId: string | null;
@@ -18,11 +19,13 @@ export interface CartItem {
 
 interface CartStore {
   items: CartItem[];
+  cartId: string | null;
   isLoading: boolean;
   addItem: (item: Omit<CartItem, 'lineId'>) => void;
   updateQuantity: (variantId: string, quantity: number) => void;
   removeItem: (variantId: string) => void;
   clearCart: () => void;
+  setCartId: (id: string | null) => void;
   checkout: () => Promise<string | null>;
   syncCart: () => Promise<void>;
 }
@@ -31,7 +34,10 @@ export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
       items: [],
+      cartId: null,
       isLoading: false,
+
+      setCartId: (id: string | null) => set({ cartId: id }),
 
       addItem: (item) => {
         const { items } = get();
@@ -48,6 +54,12 @@ export const useCartStore = create<CartStore>()(
         } else {
           set({ items: [...items, { ...item, lineId: null }] });
         }
+        
+        // Auto-sync after adding
+        const session = getStoredSession();
+        if (session?.user?.id) {
+          syncCartToShopify(session.user.id, get().items);
+        }
       },
 
       updateQuantity: (variantId, quantity) => {
@@ -60,16 +72,34 @@ export const useCartStore = create<CartStore>()(
             i.variantId === variantId ? { ...i, quantity } : i
           )
         });
+
+        // Auto-sync after update
+        const session = getStoredSession();
+        if (session?.user?.id) {
+          syncCartToShopify(session.user.id, get().items);
+        }
       },
 
       removeItem: (variantId) => {
         set({
           items: get().items.filter(i => i.variantId !== variantId)
         });
+
+        // Auto-sync after removal
+        const session = getStoredSession();
+        if (session?.user?.id) {
+          syncCartToShopify(session.user.id, get().items);
+        }
       },
 
       clearCart: () => {
         set({ items: [] });
+        
+        // Auto-sync after clearing
+        const session = getStoredSession();
+        if (session?.user?.id) {
+          syncCartToShopify(session.user.id, []);
+        }
       },
 
       checkout: async () => {
@@ -84,11 +114,16 @@ export const useCartStore = create<CartStore>()(
             quantity: item.quantity
           }));
 
-          const result = await createStorefrontCheckout(lineItems);
-          if (result) {
-            return result;
+          console.log("Starting Standard checkout flow...");
+          const result = await createHybridCheckout(lineItems, session?.user?.id, session?.user?.email);
+
+          if (result.success && result.checkoutUrl) {
+            console.log("Admin checkout successful URL:", result.checkoutUrl);
+            return result.checkoutUrl;
+          } else {
+            console.error("Admin checkout failed:", result.errors);
+            return null;
           }
-          return null;
         } catch (error) {
           console.error('Checkout failed:', error);
           return null;
@@ -98,13 +133,30 @@ export const useCartStore = create<CartStore>()(
       },
 
       syncCart: async () => {
-        // No-op for Admin-only local cart
+        const session = getStoredSession();
+        if (!session?.user?.id) return;
+
+        // The session object already contains the cartJson from the login/check-session fetch
+        if (session.user.cartJson) {
+          try {
+            const remoteItems = JSON.parse(session.user.cartJson);
+            if (Array.isArray(remoteItems) && remoteItems.length > 0) {
+              console.log("Restoring cart from Shopify:", remoteItems.length, "items");
+              set({ items: remoteItems });
+            }
+          } catch (e) {
+            console.error("Failed to parse remote cart JSON:", e);
+          }
+        }
       },
     }),
     {
       name: 'shopify-cart',
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ items: state.items }),
+      partialize: (state) => ({ 
+        items: state.items,
+        cartId: state.cartId
+      }),
     }
   )
 );

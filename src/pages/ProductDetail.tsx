@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { fetchProductByHandleViaAdmin } from "@/lib/shopifyAdmin";
-import { createStorefrontCheckout } from "@/lib/shopify";
+import {
+  fetchProductByHandleViaAdmin,
+  checkCustomerHasPurchased,
+  getStoredSession,
+  fetchReviewStatsViaAdmin,
+  createHybridCheckout,
+  logCheckoutToTerminal
+} from "@/lib/shopifyAdmin";
 import { useCartStore } from "@/stores/cartStore";
 import { 
   ArrowLeft, 
@@ -20,7 +26,8 @@ import {
   ArrowRight,
   Heart,
   X,
-  Send
+  Send,
+  ChevronRight
 } from "lucide-react";
 import { toast } from "sonner";
 import Header from "@/components/Header";
@@ -29,7 +36,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useWishlistStore } from "@/stores/wishlistStore";
 import { useReviewStore } from "@/stores/reviewStore";
 import { useQuestionStore } from "@/stores/questionStore";
-import { getStoredSession } from "@/lib/shopify";
 
 const faqs = [
   { q: "Is this suitable for daily use?", a: "Yes, this formulation is designed for consistent support. However, we always recommend following the dosage directed by your practitioner." },
@@ -65,9 +71,16 @@ const ProductDetail = () => {
   const [questionEmail, setQuestionEmail] = useState("");
   const [questionText, setQuestionText] = useState("");
   const [isSubmittingQuestion, setIsSubmittingQuestion] = useState(false);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [hasPurchased, setHasPurchased] = useState(false);
+  const [isCheckingEligibility, setIsCheckingEligibility] = useState(false);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
-  const productReviews = handle ? getReviews(handle) : [];
-  const averageRating = handle ? getAverageRating(handle) : 4.5;
+  // Safely calculate average rating
+  const safeReviews = Array.isArray(reviews) ? reviews : [];
+  const averageRating = safeReviews.length > 0 
+    ? parseFloat((safeReviews.reduce((acc, r) => acc + (Number(r.rating) || 0), 0) / safeReviews.length).toFixed(1))
+    : 4.9; // Fallback to premium default
 
   useEffect(() => {
     const session = getStoredSession();
@@ -75,8 +88,42 @@ const ProductDetail = () => {
       setReviewName(session.user.name || "");
       setQuestionName(session.user.name || "");
       setQuestionEmail(session.user.email || "");
+      
+      if (product?.id) {
+        checkEligibility(session.user.id, product.id);
+      }
     }
-  }, []);
+  }, [product?.id]);
+
+  const checkEligibility = async (customerId: string, productId: string) => {
+    setIsCheckingEligibility(true);
+    try {
+      const purchased = await checkCustomerHasPurchased(customerId, productId);
+      setHasPurchased(purchased);
+    } catch (error) {
+      console.error("Eligibility check failed:", error);
+    } finally {
+      setIsCheckingEligibility(false);
+    }
+  };
+
+  useEffect(() => {
+    const loadReviews = async () => {
+      if (!product?.id) return;
+      try {
+        const response = await fetch(`/api/reviews?product_id=${encodeURIComponent(product.id)}`);
+        if (response.ok) {
+          const data = await response.json();
+          setReviews(Array.isArray(data) ? data : []);
+        } else {
+          setReviews([]);
+        }
+      } catch (error) {
+        console.error("Failed to load reviews:", error);
+      }
+    };
+    loadReviews();
+  }, [product?.id]);
 
   const handleQuestionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,27 +150,60 @@ const ProductDetail = () => {
     }
   };
 
-  const handleReviewSubmit = (e: React.FormEvent) => {
+  const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!handle) return;
+    if (!product?.id) return;
     
-    if (!reviewName.trim() || !reviewComment.trim()) {
-      toast.error("Please fill in all fields");
+    const session = getStoredSession();
+    if (!session?.user) {
+      toast.info("Please login to leave a review");
+      navigate("/login");
       return;
     }
 
-    addReview(handle, {
-      userName: reviewName,
-      rating: reviewRating,
-      comment: reviewComment,
-    });
+    if (!hasPurchased) {
+      toast.error("Verification Required", { 
+        description: "Only customers who purchased this product can leave a review." 
+      });
+      return;
+    }
+    
+    if (!reviewComment.trim()) {
+      toast.error("Please add your feedback");
+      return;
+    }
 
-    toast.success("Review submitted", { description: "Thank you for your feedback!" });
-    setReviewModalOpen(false);
-    setReviewComment("");
-    // Keep the name for next time or reset if guest
-    const session = getStoredSession();
-    if (!session?.user) setReviewName("");
+    setIsSubmittingReview(true);
+    try {
+      const response = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: product.id,
+          customerId: session.user.id,
+          rating: reviewRating,
+          reviewText: reviewComment,
+          customerName: reviewName,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success("Review submitted", { description: "Thank you for your feedback!" });
+        setReviewModalOpen(false);
+        setReviewComment("");
+        // Reload reviews
+        const updatedReviews = await fetch(`/api/reviews?product_id=${encodeURIComponent(product.id)}`).then(r => r.json());
+        setReviews(Array.isArray(updatedReviews) ? updatedReviews : []);
+      } else {
+        toast.error("Submission failed", { description: data.error || "Failed to save review" });
+      }
+    } catch (error) {
+      toast.error("Something went wrong");
+    } finally {
+      setIsSubmittingReview(false);
+    }
   };
 
   useEffect(() => {
@@ -182,6 +262,7 @@ const ProductDetail = () => {
   };
 
   const benefitLine = getBenefitLine(handle || '', product.productType);
+  const subtitle = product.description?.split('.')[0] + '.' || `${product.productType} formulation for balanced internal wellness.`;
 
   const variants = product.variants?.edges || [];
   const selectedVariant = variants[selectedVariantIdx]?.node;
@@ -204,21 +285,33 @@ const ProductDetail = () => {
   const handleBuyNow = async () => {
     if (!selectedVariant) return;
     
+    const session = getStoredSession();
+    if (!session?.user) {
+       toast.info("Please sign in to proceed with direct checkout");
+      const encodedId = encodeURIComponent(selectedVariant.id);
+      navigate(`/login?redirect=buy_now&variantId=${encodedId}&quantity=${quantity}`);
+      return;
+    }
+
     setIsBuyingNow(true);
+    const toastId = toast.loading("Generating secure checkout link...");
+    
     try {
-      const result = await createStorefrontCheckout(
-        [{ variantId: selectedVariant.id, quantity: quantity }]
-      );
+      const lineItems = [{ variantId: selectedVariant.id, quantity: quantity }];
+      const result = await createHybridCheckout(lineItems, session.user.id, session.user.email);
       
-      if (result) {
-        window.location.assign(result);
+       if (result.success && result.checkoutUrl) {
+        console.log("ProductDetail: Redirecting to Direct Buy Now:", result.checkoutUrl);
+        await logCheckoutToTerminal(result.checkoutUrl, `ProductDetail (Buy Now: ${encodeURIComponent(selectedVariant.id)})`);
+        window.location.href = result.checkoutUrl;
       } else {
-        toast.error("Checkout failed", { description: "Could not generate checkout link. Please try adding to cart." });
+        toast.error("Checkout failed", { 
+          description: "Could not generate checkout link. Please try again." 
+        });
+        setIsBuyingNow(false);
       }
-    } catch (error) {
-      console.error("Buy Now Error:", error);
-      toast.error("Something went wrong", { description: "Please try again or use standard Add to Cart." });
-    } finally {
+    } catch (error: any) {
+      toast.error("An unexpected error occurred");
       setIsBuyingNow(false);
     }
   };
@@ -235,72 +328,18 @@ const ProductDetail = () => {
       <Header />
       
       <main className="pt-4 md:pt-8 pb-0 md:pb-24">
-        <div className="container px-4 mx-auto">
-          {/* Product Page Header */}
-          <div className="max-w-4xl mx-auto mb-6 md:mb-20 space-y-4 md:space-y-8">
-            <div className="flex justify-start">
-              <button
-                onClick={() => navigate(-1)}
-                className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[#1A2E35]/30 hover:text-[#1A2E35] transition-colors"
-              >
-                <ArrowLeft className="h-4 w-4" /> Back to Collection
-              </button>
-            </div>
-            
-            <div className="text-center space-y-4 md:space-y-8">
-              <div className="space-y-4">
-                <h1 className="text-5xl md:text-7xl font-display font-medium text-[#1A2E35] leading-tight mb-2">
-                  {product.title}
-                </h1>
-                <div className="flex justify-center">
-                  <p className="inline-block px-4 py-1.5 bg-[#5A7A5C]/5 text-[#5A7A5C] text-sm md:text-base font-sans-clean font-bold rounded-full border border-[#5A7A5C]/10 mb-4">
-                    {benefitLine}
-                  </p>
-                </div>
-                <p className="text-xl md:text-2xl text-[#1A2E35]/50 font-body max-w-2xl mx-auto leading-relaxed">
-                  Expertly balanced Ayurvedic formulation for {product.productType?.toLowerCase() || 'holistic'} support and stabilizing internal resilience.
-                </p>
-              </div>
+        <div className="container px-4 mx-auto max-w-7xl">
+          <nav className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[#1A2E35]/40 mb-12">
+            <Link to="/" className="hover:text-[#5A7A5C]">Home</Link>
+            <ChevronRight className="h-3 w-3" />
+            <Link to="/shop" className="hover:text-[#5A7A5C]">Shop</Link>
+            <ChevronRight className="h-3 w-3" />
+            <span className="text-[#1A2E35]">{product.title}</span>
+          </nav>
 
-              <div className="flex justify-center items-center gap-3 md:gap-6 pt-2 overflow-x-auto no-scrollbar whitespace-nowrap">
-                <div className="flex items-center gap-2 shrink-0">
-                  <div className="flex gap-0.5">
-                    {[1, 2, 3, 4, 5].map(s => (
-                      <Star 
-                        key={s} 
-                        className={`h-3 w-3 ${s <= Math.round(averageRating || 4.9) ? 'fill-[#C5A059] text-[#C5A059]' : 'text-[#F2EDE4]'}`} 
-                      />
-                    ))}
-                  </div>
-                  <span className="text-[10px] font-bold text-[#1A2E35] uppercase tracking-widest">{averageRating || 4.9} / 5.0</span>
-                </div>
-                <div className="w-1 h-1 bg-[#F2EDE4] rounded-full shrink-0" />
-                <a href="#reviews" className="text-[10px] font-bold text-[#5A7A5C] uppercase tracking-widest hover:underline underline-offset-4 shrink-0">
-                  {productReviews.length + 112} Verified Reviews
-                </a>
-              </div>
-            </div>
-
-            {/* Essential Trust Elements */}
-            <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-6 pt-6 border-t border-[#F2EDE4]/60 max-w-2xl mx-auto">
-              <div className="flex items-center gap-2.5 text-[10px] font-bold text-[#1A2E35]/60 uppercase tracking-[0.2em]">
-                <ShieldCheck className="h-4 w-4 text-[#5A7A5C]" /> GMP Certified
-              </div>
-              <div className="flex items-center gap-2.5 text-[10px] font-bold text-[#1A2E35]/60 uppercase tracking-[0.2em]">
-                <Leaf className="h-4 w-4 text-[#C5A059]" /> 100% Traditional
-              </div>
-              <div className="flex items-center gap-2.5 text-[10px] font-bold text-[#1A2E35]/60 uppercase tracking-[0.2em]">
-                <CheckCircle2 className="h-4 w-4 text-[#5A7A5C]" /> Batch Tested
-              </div>
-            </div>
-          </div>
-
-          {/* 6) PDP Hero Section */}
           <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 mb-32">
-            {/* Gallery */}
             <div className="space-y-6">
               <div className="sticky top-32">
-                
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -322,11 +361,10 @@ const ProductDetail = () => {
                   ) : (
                     <Leaf className="h-20 w-20 text-[#1A2E35]/10" />
                   )}
-                  {/* Wishlist Button On Main Image */}
                   <button 
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.preventDefault();
-                      if (selectedVariant) toggleItem({ node: product }, selectedVariant.id);
+                      if (selectedVariant) await toggleItem({ node: product } as any, selectedVariant.id);
                     }}
                     className={`absolute top-4 right-4 p-3 rounded-full backdrop-blur-md border transition-all z-20 ${
                       selectedVariant && isInWishlist(selectedVariant.id) 
@@ -354,32 +392,51 @@ const ProductDetail = () => {
               </div>
             </div>
 
-            {/* Product Info */}
-            <div className="space-y-12">
-              <div className="flex items-center gap-4 py-2">
-                <div className="flex items-center gap-1 text-[#C5A059]">
-                  {[1, 2, 3, 4, 5].map(s => (
-                    <Star 
-                      key={s} 
-                      className={`h-4 w-4 ${s <= Math.round(averageRating || 4.9) ? 'fill-current' : 'text-[#F2EDE4]'}`} 
-                    />
-                  ))}
+            <div className="space-y-10">
+              <div className="space-y-4">
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="inline-flex items-center gap-2 px-3 py-1 bg-[#5A7A5C]/5 rounded-full border border-[#5A7A5C]/10"
+                >
+                  <div className="h-1.5 w-1.5 rounded-full bg-[#5A7A5C]" />
+                  <span className="text-[9px] uppercase tracking-[0.22em] text-[#5A7A5C] font-bold">{benefitLine || "Batch Verified"}</span>
+                </motion.div>
+                
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-medium text-[#1A2E35] leading-tight tracking-tight">
+                  {product.title}
+                </h1>
+                
+                <p className="text-lg text-[#1A2E35]/50 font-sans-clean leading-relaxed max-w-md">
+                   {subtitle || `${product.productType} formulation for balanced internal wellness.`}
+                </p>
+
+                <div className="flex flex-wrap items-center gap-6 pt-2">
+                  <div className="flex items-center gap-2 text-[8px] font-bold text-[#1A2E35]/40 uppercase tracking-widest">
+                    <ShieldCheck className="h-3 w-3 text-[#5A7A5C]" /> GMP
+                  </div>
+                  <div className="flex items-center gap-2 text-[8px] font-bold text-[#1A2E35]/40 uppercase tracking-widest">
+                    <Leaf className="h-3 w-3 text-[#C5A059]" /> 100% Herbal
+                  </div>
+                  <div className="flex items-center gap-2 text-[8px] font-bold text-[#1A2E35]/40 uppercase tracking-widest">
+                    <CheckCircle2 className="h-3 w-3 text-[#5A7A5C]" /> CLINICAL
+                  </div>
                 </div>
-                <a href="#reviews" className="text-xs font-bold text-[#1A2E35]/40 uppercase tracking-widest hover:text-[#5A7A5C] underline underline-offset-4">Read {productReviews.length + 112} reviews</a>
               </div>
 
               <div className="space-y-6">
-                <div className="flex flex-wrap items-baseline gap-3">
-                  <span className="text-2xl sm:text-3xl font-display font-medium text-[#1A2E35] whitespace-nowrap">
+                <div className="flex flex-wrap items-center gap-4">
+                  <span className="text-4xl font-display font-medium text-[#1A2E35]">
                     {selectedVariant?.price.currencyCode === 'INR' ? '₹' : selectedVariant?.price.currencyCode}{' '}
-                    {parseFloat(selectedVariant?.price.amount || "0").toFixed(2)}
+                    {parseFloat(selectedVariant?.price.amount || "0").toFixed(0)}
                   </span>
-                  <span className="text-base sm:text-lg text-[#1A2E35]/30 line-through whitespace-nowrap">₹ {((parseFloat(selectedVariant?.price.amount || "0") * 1.15)).toFixed(2)}</span>
-                  <span className="bg-[#5A7A5C]/5 text-[#5A7A5C] text-[10px] font-bold px-2 py-1 rounded-md mb-1 uppercase tracking-widest whitespace-nowrap">Inclusive of Taxes</span>
+                  <div className="flex flex-col">
+                    <span className="text-sm text-[#1A2E35]/30 line-through">₹ {((parseFloat(selectedVariant?.price.amount || "0") * 1.25)).toFixed(0)}</span>
+                    <span className="text-[#5A7A5C] text-[10px] font-bold uppercase tracking-wider">Save 25% Today</span>
+                  </div>
                 </div>
 
-                {/* Rating Display */}
-                <div className="flex items-center gap-2 mb-6 whitespace-nowrap overflow-x-auto no-scrollbar">
+                <div className="flex items-center gap-2 mb-6 whitespace-nowrap">
                   <div className="flex gap-1 shrink-0">
                     {[1, 2, 3, 4, 5].map((s) => (
                       <Star 
@@ -391,29 +448,24 @@ const ProductDetail = () => {
                   <span className="text-xs font-bold text-[#1A2E35] shrink-0">
                     {averageRating}
                   </span>
-                  <span className="text-xs text-[#1A2E35]/40 shrink-0">
-                    ({productReviews.length + 112} reviews)
-                  </span>
+                  <a href="#reviews" className="text-xs text-[#1A2E35]/40 shrink-0 hover:text-[#5A7A5C] underline underline-offset-4">
+                    ({safeReviews.length} reviews)
+                  </a>
                 </div>
-                
-                <div 
-                  className="text-base text-[#1A2E35]/60 font-sans-clean leading-relaxed prose prose-sm prose-stone max-w-none"
-                  dangerouslySetInnerHTML={{ __html: product.descriptionHtml || product.description }}
-                />
               </div>
 
               {hasMultipleVariants && (
                 <div className="space-y-4">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-[#1A2E35]/40">Select Format</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-[#1A2E35]/40 px-1">Select Format</label>
                   <div className="flex flex-wrap gap-3">
                     {variants.map((v: any, i: number) => (
                       <button
                         key={v.node.id}
                         onClick={() => { setSelectedVariantIdx(i); setSelectedImage(0); }}
                         disabled={!v.node.availableForSale}
-                        className={`px-6 py-3 rounded-xl text-xs font-bold transition-all border shadow-sm ${
+                        className={`px-8 py-4 rounded-2xl text-[10px] font-bold transition-all border uppercase tracking-widest ${
                           i === selectedVariantIdx
-                            ? 'bg-[#1A2E35] border-[#1A2E35] text-white shadow-[#1A2E35]/20 shadow-lg'
+                            ? 'bg-[#1A2E35] border-[#1A2E35] text-white shadow-[#1A2E35]/20 shadow-xl'
                             : 'bg-white border-[#F2EDE4] text-[#1A2E35] hover:border-[#5A7A5C]'
                         } ${!v.node.availableForSale ? 'opacity-40 cursor-not-allowed' : ''}`}
                       >
@@ -425,20 +477,20 @@ const ProductDetail = () => {
               )}
 
               <div className="space-y-6 pt-6 border-t border-[#F2EDE4]">
-                <div className="flex items-center gap-6">
-                  <div className="flex items-center bg-white border border-[#F2EDE4] rounded-xl px-2">
-                    <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-3 text-[#1A2E35]/30 hover:text-[#1A2E35]">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                  <div className="flex items-center bg-white border border-[#F2EDE4] rounded-2xl px-2 h-16 sm:w-32 justify-between">
+                    <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="p-4 text-[#1A2E35]/30 hover:text-[#1A2E35]">
                       <Minus className="h-4 w-4" />
                     </button>
-                    <span className="w-10 text-center font-display font-medium text-[#1A2E35]">{quantity}</span>
-                    <button onClick={() => setQuantity(quantity + 1)} className="p-3 text-[#1A2E35]/30 hover:text-[#1A2E35]">
+                    <span className="text-center font-display font-medium text-[#1A2E35] min-w-[2ch]">{quantity}</span>
+                    <button onClick={() => setQuantity(quantity + 1)} className="p-4 text-[#1A2E35]/30 hover:text-[#1A2E35]">
                       <Plus className="h-4 w-4" />
                     </button>
                   </div>
                   <button
                     onClick={handleAddToCart}
                     disabled={isLoading || !selectedVariant?.availableForSale}
-                    className="flex-1 bg-[#5A7A5C] text-white py-5 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-[#4A634B] transition-all shadow-xl shadow-[#5A7A5C]/20 flex items-center justify-center gap-3 disabled:opacity-50 disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none"
+                    className="flex-1 bg-[#5A7A5C] text-white h-16 rounded-2xl font-bold uppercase tracking-widest text-[10px] hover:bg-[#4A634B] transition-all shadow-xl shadow-[#5A7A5C]/20 flex items-center justify-center gap-3 disabled:opacity-50 disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none"
                   >
                     {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (
                       !selectedVariant?.availableForSale ? "Sold Out" : <><ShoppingCart className="h-4 w-4" /> Add to Cart</>
@@ -449,17 +501,23 @@ const ProductDetail = () => {
                 <button 
                   onClick={handleBuyNow}
                   disabled={isBuyingNow || !selectedVariant?.availableForSale}
-                  className="w-full border-2 border-[#1A2E35] text-[#1A2E35] py-5 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-[#1A2E35] hover:text-white transition-all disabled:opacity-50 disabled:bg-[#f2f2f2] disabled:border-gray-200 disabled:text-gray-400 flex items-center justify-center gap-2"
+                  className="w-full bg-[#1A2E35] text-white h-16 rounded-2xl font-bold uppercase tracking-widest text-[10px] hover:bg-[#1A2E35]/90 transition-all disabled:opacity-50 disabled:bg-[#f2f2f2] disabled:text-gray-400 shadow-xl shadow-[#1A2E35]/20 flex items-center justify-center gap-2"
                 >
                   {isBuyingNow ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   {isBuyingNow ? "Redirecting..." : (!selectedVariant?.availableForSale ? "Sold Out" : "Buy Now Direct")}
                 </button>
-                
+              </div>
+
+              <div className="pt-8 space-y-4">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-[#1A2E35]/40 px-1">Detailed Description</label>
+                <div 
+                  className="text-sm text-[#1A2E35]/60 font-sans-clean leading-relaxed prose prose-sm prose-stone max-w-none"
+                  dangerouslySetInnerHTML={{ __html: product.descriptionHtml || product.description }}
+                />
               </div>
             </div>
           </div>
 
-          {/* 7) What It’s For (Benefits) */}
           <section className="py-24 border-t border-[#F2EDE4]">
             <div className="max-w-4xl mx-auto text-center">
               <p className="text-[#C5A059] font-sans-clean text-[10px] font-bold uppercase tracking-[0.3em] mb-4">THE SALMARA EXPERIENCE</p>
@@ -482,7 +540,6 @@ const ProductDetail = () => {
             </div>
           </section>
 
-          {/* 8) Ingredients & Formulation */}
           <section className="py-24 bg-white -mx-4 px-4 border-y border-[#F2EDE4]">
             <div className="max-w-4xl mx-auto space-y-16">
               <div className="text-center">
@@ -512,7 +569,6 @@ const ProductDetail = () => {
             </div>
           </section>
 
-          {/* 9) How to Use */}
           <section className="py-24 max-w-4xl mx-auto">
             <h2 className="text-3xl font-display font-medium text-[#1A2E35] text-center mb-12">Suggested Use</h2>
             <div className="grid md:grid-cols-2 gap-12">
@@ -548,19 +604,6 @@ const ProductDetail = () => {
             </div>
           </section>
 
-          {/* 10) Quality & Certification */}
-          <section className="py-16 bg-[#1A2E35] -mx-4 px-4">
-            <div className="container px-4 text-center space-y-10">
-              <h3 className="text-xs font-bold text-white/40 uppercase tracking-[0.4em]">Standards we align with</h3>
-              <div className="flex flex-wrap justify-center items-center gap-12 opacity-50 grayscale hover:grayscale-0 transition-all">
-                {["GMP CERTIFIED", "CERTIFIED BOTANICALS", "AYUSH STANDARDS", "CLINICALLY TESTED"].map(cert => (
-                  <span key={cert} className="text-white font-display text-sm tracking-[0.4em] px-6 border-x border-white/10">{cert}</span>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* 11) Reviews */}
           <section id="reviews" className="py-24 max-w-4xl mx-auto border-b border-[#F2EDE4]">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-12 md:mb-16">
               <div className="space-y-2">
@@ -575,21 +618,31 @@ const ProductDetail = () => {
                     ))}
                   </div>
                   <span className="text-xs font-bold text-[#1A2E35]/40 uppercase tracking-widest whitespace-nowrap">
-                    Based on {productReviews.length + 112} verified ratings
+                    Based on {safeReviews.length} verified ratings
                   </span>
                 </div>
               </div>
               <button 
                 onClick={() => setReviewModalOpen(true)}
-                className="w-full sm:w-auto bg-[#1A2E35] text-white px-8 py-4 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-[#1A2E35]/90 transition-all shadow-lg shadow-[#1A2E35]/20"
+                className="w-full sm:w-auto bg-[#1A2E35] text-white px-8 py-4 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-[#1A2E35]/90 transition-all shadow-lg shadow-[#1A2E35]/20 disabled:opacity-50"
+                disabled={!hasPurchased || isCheckingEligibility}
               >
-                Write a Review
+                {isCheckingEligibility ? "Verifying..." : "Write a Review"}
               </button>
             </div>
             
+            {!hasPurchased && !isCheckingEligibility && (
+              <div className="mb-12 p-6 bg-[#5A7A5C]/5 border border-[#5A7A5C]/10 rounded-2xl flex items-center gap-4">
+                <Info className="h-5 w-5 text-[#5A7A5C]" />
+                <p className="text-sm font-sans-clean text-[#5A7A5C]/80">
+                  Only customers who purchased this product can leave a review.
+                </p>
+              </div>
+            )}
+            
             <div className="space-y-8">
               <AnimatePresence mode="popLayout">
-                {productReviews.map((review) => (
+                {safeReviews.map((review) => (
                   <motion.div
                     key={review.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -603,18 +656,18 @@ const ProductDetail = () => {
                             <Star key={s} className={`h-3 w-3 ${s <= review.rating ? 'fill-current' : 'text-[#F2EDE4]'}`} />
                           ))}
                         </div>
-                        <p className="font-display font-medium text-[#1A2E35]">{review.userName}</p>
+                        <p className="font-display font-medium text-[#1A2E35]">{review.customer_name || "Verified Customer"}</p>
                       </div>
-                      <span className="text-[10px] font-bold text-[#1A2E35]/30 uppercase tracking-widest shrink-0">{review.date}</span>
+                      <span className="text-[10px] font-bold text-[#1A2E35]/30 uppercase tracking-widest shrink-0">{new Date(review.created_at).toLocaleDateString()}</span>
                     </div>
                     <p className="text-sm text-[#1A2E35]/60 leading-relaxed font-sans-clean">
-                      {review.comment}
+                      {review.review_text}
                     </p>
                   </motion.div>
                 ))}
               </AnimatePresence>
 
-              {productReviews.length === 0 && (
+              {safeReviews.length === 0 && (
                 <div className="text-center py-20 bg-white border border-[#F2EDE4] rounded-3xl">
                   <p className="text-sm text-[#1A2E35]/40 italic font-body mb-6">"Be the first to review this formulation."</p>
                   <div className="h-10 w-px bg-[#F2EDE4] mx-auto" />
@@ -623,7 +676,6 @@ const ProductDetail = () => {
             </div>
           </section>
 
-          {/* Review Submission Modal */}
           <AnimatePresence>
             {reviewModalOpen && (
               <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -697,9 +749,10 @@ const ProductDetail = () => {
 
                     <button
                       type="submit"
-                      className="w-full bg-[#1A2E35] text-white py-4 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-[#5A7A5C] transition-all flex items-center justify-center gap-3 shadow-xl shadow-[#1A2E35]/10"
+                      disabled={isSubmittingReview}
+                      className="w-full bg-[#1A2E35] text-white py-4 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-[#5A7A5C] transition-all flex items-center justify-center gap-3 shadow-xl shadow-[#1A2E35]/10 disabled:opacity-50"
                     >
-                      Submit Review <Send className="h-4 w-4" />
+                      {isSubmittingReview ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Submit Review <Send className="h-4 w-4" /></>}
                     </button>
                   </form>
                 </motion.div>
@@ -707,7 +760,6 @@ const ProductDetail = () => {
             )}
           </AnimatePresence>
 
-          {/* 12) FAQs */}
           <section className="py-12 md:py-24 max-w-3xl mx-auto">
             <h2 className="text-3xl font-display font-medium text-[#1A2E35] text-center mb-16">Frequently Asked Questions</h2>
             <div className="space-y-4">
@@ -739,11 +791,9 @@ const ProductDetail = () => {
             </div>
           </section>
 
-          {/* 13) Have a Doubt? (Question Form) */}
           <section className="py-24 border-t border-[#F2EDE4]">
             <div className="max-w-4xl mx-auto">
               <div className="bg-[#1A2E35] rounded-[3rem] p-8 md:p-16 relative overflow-hidden">
-                {/* Decorative Elements */}
                 <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
                 <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-[#5A7A5C]/10 rounded-full blur-3xl" />
                 
@@ -824,27 +874,8 @@ const ProductDetail = () => {
               </div>
             </div>
           </section>
-
-          {/* 14) Cross-sells (Recommended) - COMMENTED OUT AS PER USER REQUEST
-          <section className="py-24 border-t border-[#F2EDE4]">
-            <h2 className="text-3xl font-display font-medium text-[#1A2E35] text-center mb-16">Pairs well with</h2>
-            <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-              {[1, 2, 3].map(item => (
-                <div key={item} className="group bg-white border border-[#F2EDE4] rounded-3xl p-6 text-center hover:border-[#5A7A5C] transition-all">
-                  <div className="aspect-square bg-[#FDFBF7] rounded-2xl overflow-hidden mb-6 flex items-center justify-center">
-                    <Leaf className="h-12 w-12 text-[#1A2E35]/10 group-hover:scale-110 transition-transform duration-500" />
-                  </div>
-                  <p className="text-[10px] font-bold text-[#5A7A5C] uppercase tracking-widest mb-2">Recommended Pair</p>
-                  <h4 className="text-base font-display font-medium text-[#1A2E35] mb-4">Ayurvedic Complementary Formulation</h4>
-                  <button className="text-[10px] font-bold text-[#1A2E35] underline underline-offset-8 uppercase tracking-widest hover:text-[#5A7A5C] transition-colors">View Product</button>
-                </div>
-              ))}
-            </div>
-          </section>
-          */}
         </div>
       </main>
-
       <Footer />
     </div>
   );

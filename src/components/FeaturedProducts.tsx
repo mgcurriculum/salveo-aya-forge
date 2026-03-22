@@ -1,14 +1,14 @@
 import { motion, useInView } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
 import { ShoppingCart, Leaf, Loader2, Star, Trophy, ShieldCheck, Sparkles, Heart } from "lucide-react";
-import { Link } from "react-router-dom";
-import { type ShopifyProduct, getStoredSession, createStorefrontCheckout } from "@/lib/shopify";
-import { fetchProductsViaAdmin } from "@/lib/shopifyAdmin";
+import { useNavigate, Link } from "react-router-dom";
+import { type ShopifyProduct, fetchProductsViaAdmin, createHybridCheckout, getStoredSession } from "@/lib/shopifyAdmin";
 import { useCartStore } from "@/stores/cartStore";
 import { useWishlistStore } from "@/stores/wishlistStore";
 import { toast } from "sonner";
 
 const FeaturedProducts = () => {
+  const navigate = useNavigate();
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
@@ -52,21 +52,26 @@ const FeaturedProducts = () => {
       return;
     }
     
+    const session = getStoredSession();
+    if (!session?.user) {
+      toast.info("Please sign in to proceed with direct checkout");
+      navigate(`/login?redirect=buy_now&variantId=${variant.id}&quantity=1`);
+      return;
+    }
+
     setBuyingId(product.node.id);
     try {
-      const result = await createStorefrontCheckout(
-        [{ variantId: variant.id, quantity: 1 }]
-      );
+      const lineItems = [{ variantId: variant.id, quantity: 1 }];
+      const result = await createHybridCheckout(lineItems, session?.user?.id);
       
-      if (result) {
-        window.location.assign(result);
+      if (result.success && result.checkoutUrl) {
+        window.location.href = result.checkoutUrl;
       } else {
-        toast.error("Checkout failed", { description: "Could not generate checkout link." });
+        toast.error("Checkout failed. Please try again.");
+        setBuyingId(null);
       }
-    } catch (error) {
-      console.error("Buy Now Error:", error);
-      toast.error("Something went wrong");
-    } finally {
+    } catch (error: any) {
+      toast.error("An unexpected error occurred");
       setBuyingId(null);
     }
   };
@@ -178,10 +183,10 @@ const FeaturedProducts = () => {
 
                       {/* Wishlist Button */}
                       <button 
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          if (variant) toggleItem(product, variant.id);
+                          if (variant) await toggleItem(product, variant.id);
                         }}
                         className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-md border transition-all z-10 ${
                           variant && isInWishlist(variant.id) 

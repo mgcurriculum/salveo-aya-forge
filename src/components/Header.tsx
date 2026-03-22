@@ -5,11 +5,10 @@ import { AuthModal } from "@/components/AuthModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
-import { getStoredSession, clearSession, getValidCustomerToken, type ShopifyProduct } from "@/lib/shopify";
-import { fetchProductsViaAdmin } from "@/lib/shopifyAdmin";
+import { useWishlistStore } from "@/stores/wishlistStore";
 import { useCartStore } from "@/stores/cartStore";
 import { useNavigate } from "react-router-dom";
-import { useWishlistStore } from "@/stores/wishlistStore";
+import { fetchProductsViaAdmin, getStoredSession, logoutViaAdmin, type ShopifyProduct } from "@/lib/shopifyAdmin";
 
 const logo = "/salamara_icon.png";
 
@@ -43,8 +42,7 @@ const Header = () => {
   const [authView, setAuthView] = useState<"login" | "register">("login");
   const [user, setUser] = useState<any>(null);
   const navigate = useNavigate();
-  const { setUserId, getWishlist } = useWishlistStore();
-  const wishlistItems = getWishlist();
+  const { items: wishlistItems, syncWithShopify, clearWishlist } = useWishlistStore();
   const wishlistCount = wishlistItems.length;
 
   const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement> | null, href: string) => {
@@ -84,17 +82,13 @@ const Header = () => {
   }, []);
 
   useEffect(() => {
-    const checkSession = async () => {
-      // Use Shopify-only token validation
-      const token = await getValidCustomerToken();
+    const checkSession = () => {
       const session = getStoredSession();
-      
-      if (token && session?.user) {
+      if (session?.user) {
         setUser(session.user);
-        setUserId(session.user.id);
+        syncWithShopify(); // Sync wishlist on session check
       } else {
         setUser(null);
-        setUserId('guest');
       }
     };
 
@@ -106,16 +100,13 @@ const Header = () => {
     };
   }, []);
 
-  const handleLogout = () => {
-    clearSession();
+  const handleLogout = async () => {
+    await logoutViaAdmin();
     clearCart();
-    setUserId('guest');
-    setUser(null);
+    clearWishlist();
     toast.success("Logged out successfully");
-    // Force a full reload to ensure all states are clean
-    setTimeout(() => {
-      window.location.href = "/";
-    }, 500);
+    setUser(null);
+    navigate("/");
   };
 
   // Fetch products for search cache
@@ -165,6 +156,12 @@ const Header = () => {
           {/* Logo & Tagline */}
           <Link 
             to="/" 
+            onClick={(e) => {
+              if (window.location.pathname === "/") {
+                e.preventDefault();
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }
+            }}
             className="flex items-center gap-4 shrink-0 group"
           >
             <img src={logo} alt="Salmara Logo" className="h-10 md:h-14 w-auto drop-shadow-sm transition-transform group-hover:scale-105" />
@@ -307,7 +304,7 @@ const Header = () => {
               aria-label="Wishlist"
             >
               <Heart className="h-5 w-5 group-hover:scale-110 transition-transform" />
-              {wishlistCount > 0 && (
+              {user && wishlistCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-sans-clean font-bold rounded-full h-4 w-4 flex items-center justify-center animate-in zoom-in duration-300">
                   {wishlistCount}
                 </span>

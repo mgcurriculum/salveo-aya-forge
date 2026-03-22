@@ -124,29 +124,36 @@ const AboutUsPage = () => {
 
             <div className="grid lg:grid-cols-2 gap-12 lg:gap-24 items-start">
               {/* Narrative Story */}
-              <div className="space-y-8 text-[#1A2E35]/70 font-sans-clean leading-relaxed text-lg text-justify">
-                <p>
-                  <span className="text-7xl font-display text-[#5A7A5C] float-left mr-4 mt-1 leading-[0.8] h-full">I</span>n 1996, our founder inherited more than recipes—he inherited a responsibility. With ancestral formulations for hair care and kidney health, we began a mission to bring authentic Ayurvedic healing to every home.
-                </p>
-                <p>
-                  Our journey started with a simple yet profound belief: that healing should be rooted in tradition and accessible to all. What began as two time-honored formulations passed down through generations became the foundation of a movement that would transform lives across India.
-                </p>
-                <p>
-                  Our mission extended far beyond clinic walls. Since 2004, we have conducted over 100 free medical camps, reaching underserved communities in remote villages and urban neighborhoods alike. We traveled where others wouldn’t—because we believe healing is a right, not a privilege.
-                </p>
-                <p>
-                  In 2005, we opened our first clinic in Murudjinjira. More than a medical facility, it became a sanctuary where ancient Ayurvedic wisdom met modern compassionate care. Every consultation was a conversation, every treatment a step toward holistic wellness.
-                </p>
-                <p>
-                  In 2006, our dedication earned official recognition when we became an AYUSH partner. This was not just certification—it was validation of authentic practice and responsibility.
-                </p>
-                <p>
-                  From our founder’s personal laboratory emerged 26+ carefully crafted formulations, each born from real patient experiences, years of observation, and generations of herbal wisdom.
-                </p>
-                <p>
-                  Among our breakthrough innovations is Karnataka’s No.1 piles medicine—a formulation that cures without surgical treatment, offering patients a natural, non-invasive path to complete recovery. This achievement earned us the National Health Award in 2024, recognizing innovation in traditional medicine that transforms patient outcomes.
-                </p>
-              </div>
+          <div className="space-y-8 text-[#1A2E35]/70 font-sans-clean leading-relaxed text-lg text-justify">
+  <p>
+    <span className="text-7xl font-display text-[#5A7A5C] float-left mr-4 mt-1 leading-[0.8] h-full">I</span>
+    n 1996, our founder inherited not just Ayurvedic formulations, but a responsibility to continue a legacy of natural healing.
+  </p>
+
+  <p>
+    What began with traditional remedies for hair care and kidney health evolved into a mission to make authentic Ayurveda accessible to every home.
+  </p>
+
+  <p>
+    Since 2004, we have conducted over 100 free medical camps, bringing healthcare to underserved communities across villages and cities.
+  </p>
+
+  <p>
+    In 2005, we opened our first clinic in Murudjinjira, offering holistic care rooted in ancient wisdom and compassion.
+  </p>
+
+  <p>
+    In 2006, we became an official AYUSH partner, marking our commitment to authentic Ayurvedic practice.
+  </p>
+
+  <p>
+    Over time, we developed 26+ formulations based on real patient experiences and generations of herbal knowledge.
+  </p>
+
+  <p>
+    Our non-surgical piles treatment, recognized as Karnataka’s No.1, earned the National Health Award in 2024 for innovation in traditional medicine.
+  </p>
+</div>
 
               {/* Milestones Timeline */}
               <div className="bg-[#FDFBF7] rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-12 border border-[#F2EDE4] relative overflow-hidden">
@@ -356,7 +363,7 @@ const AboutUsPage = () => {
           <div className="max-w-3xl mx-auto text-center mb-10">
             <h2 className="text-2xl md:text-3xl font-display font-medium text-[#1A2E35] mb-3">Approved by Standards That Matter</h2>
             <p className="text-[#1A2E35]/60 font-sans-clean leading-relaxed">
-              Integrity is not just a word; it’s a certification. Our facility and products undergo rigorous external audits to ensure they meet the highest global standards.
+              Integrity is not just a word; it’s a certification. Our facility and products undergo rigorous external audits to ensure they meet the highest standards.
             </p>
           </div>
           
@@ -370,7 +377,7 @@ const AboutUsPage = () => {
             <div className="p-8 border border-[#F2EDE4] rounded-2xl text-center">
               <h4 className="text-lg font-display font-bold text-[#1A2E35] mb-1">ISO 9001:2015</h4>
               <p className="text-[10px] uppercase tracking-widest text-[#C5A059] mb-4">International Standards Organization</p>
-              <p className="text-sm text-[#1A2E35]/60 font-sans-clean">Globally recognized standard for Quality Management Systems, focused on customer satisfaction and quality delivery.</p>
+              <p className="text-sm text-[#1A2E35]/60 font-sans-clean">Recognized standard for Quality Management Systems, focused on customer satisfaction and quality delivery PAN India.</p>
             </div>
             
             <div className="p-8 border border-[#F2EDE4] rounded-2xl text-center">

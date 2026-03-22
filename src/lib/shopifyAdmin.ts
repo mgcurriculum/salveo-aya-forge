@@ -1,15 +1,67 @@
+import { toast } from "sonner";
+
 /**
  * Shopify Admin API client.
  * All requests go through the Vite dev server proxy at /api/shopify-admin
  * so the Admin API access token is never exposed to the browser.
  */
 
-interface ShopifyAdminCustomer {
+export interface ShopifyAdminCustomer {
   id: string;
   email: string;
   firstName?: string;
   lastName?: string;
   phone?: string;
+  shopifyCartId?: string;
+}
+
+export interface ShopifyProduct {
+  node: {
+    id: string;
+    title: string;
+    description: string;
+    descriptionHtml?: string;
+    handle: string;
+    productType: string;
+    tags: string[];
+    priceRange: {
+      minVariantPrice: {
+        amount: string;
+        currencyCode: string;
+      };
+    };
+    images: {
+      edges: Array<{
+        node: {
+          url: string;
+          altText: string | null;
+        };
+      }>;
+    };
+    variants: {
+      edges: Array<{
+        node: {
+          id: string;
+          title: string;
+          price: {
+            amount: string;
+            currencyCode: string;
+          };
+          availableForSale: boolean;
+          selectedOptions: Array<{
+            name: string;
+            value: string;
+          }>;
+          inventoryQuantity?: number;
+        };
+      }>;
+    };
+    options: {
+      id: string;
+      name: string;
+      values: string[];
+    }[];
+  };
 }
 
 interface AdminApiResponse {
@@ -80,25 +132,11 @@ const CUSTOMER_INVITE_MUTATION = `
   }
 `;
 
-const DRAFT_ORDER_CREATE_MUTATION = `
-  mutation draftOrderCreate($input: DraftOrderInput!) {
-    draftOrderCreate(input: $input) {
-      draftOrder {
-        id
-        invoiceUrl
-      }
-      userErrors {
-        field
-        message
-      }
-    }
-  }
-`;
 
 const CUSTOMER_ORDERS_QUERY = `
   query getCustomerOrders($id: ID!) {
     customer(id: $id) {
-      orders(first: 10, reverse: true) {
+      orders(first: 50, reverse: true) {
         edges {
           node {
             id
@@ -112,15 +150,29 @@ const CUSTOMER_ORDERS_QUERY = `
             }
             displayFinancialStatus
             displayFulfillmentStatus
-            lineItems(first: 5) {
+            lineItems(first: 50) {
               edges {
                 node {
+                  product {
+                    id
+                  }
                   title
                   quantity
                   image {
                     url
                   }
                 }
+              }
+            }
+            fulfillments(first: 10) {
+              id
+              displayStatus
+              status
+              createdAt
+              updatedAt
+              trackingInfo(first: 5) {
+                number
+                url
               }
             }
           }
@@ -209,6 +261,105 @@ const PRODUCT_BY_HANDLE_ADMIN_QUERY = `
   }
 `;
 
+const ORDERS_BY_EMAIL_QUERY = `
+  query getOrdersByEmail($query: String!) {
+    orders(first: 20, query: $query, reverse: true) {
+      edges {
+        node {
+          id
+          name
+          processedAt
+          totalPriceSet {
+            shopMoney {
+              amount
+              currencyCode
+            }
+          }
+          displayFinancialStatus
+          displayFulfillmentStatus
+          lineItems(first: 20) {
+            edges {
+              node {
+                title
+                quantity
+                image {
+                  url
+                }
+              }
+            }
+          }
+          fulfillments(first: 10) {
+            id
+            displayStatus
+            status
+            createdAt
+            updatedAt
+            trackingInfo(first: 5) {
+              number
+              url
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+
+const PRODUCT_REVIEWS_QUERY = `
+  query getProductReviews($id: ID!) {
+    product(id: $id) {
+      metafield(namespace: "custom", key: "reviews") {
+        value
+      }
+    }
+  }
+`;
+
+const PRODUCT_UPDATE_MUTATION = `
+  mutation productUpdate($input: ProductInput!) {
+    productUpdate(input: $input) {
+      product {
+        id
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+const DRAFT_ORDER_CREATE_MUTATION = `
+  mutation draftOrderCreate($input: DraftOrderInput!) {
+    draftOrderCreate(input: $input) {
+      draftOrder {
+        id
+        invoiceUrl
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+const CART_CREATE_MUTATION = `
+  mutation cartCreate($input: CartInput!) {
+    cartCreate(input: $input) {
+      cart {
+        id
+        checkoutUrl
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
 async function adminApiRequest(query: string, variables: Record<string, unknown> = {}) {
   const response = await fetch('/api/shopify-admin', {
     method: 'POST',
@@ -221,11 +372,42 @@ async function adminApiRequest(query: string, variables: Record<string, unknown>
     throw new Error(`Admin API proxy error (${response.status}): ${text}`);
   }
 
-  return response.json();
+  return await response.json();
+}
+
+async function adminRestCheckoutRequest(data: any) {
+  const response = await fetch('/api/shopify-checkout-rest', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Admin REST Checkout error (${response.status}): ${text}`);
+  }
+
+  return await response.json();
+}
+
+async function storefrontApiRequest(query: string, variables: Record<string, unknown> = {}) {
+  const response = await fetch('/api/shopify-storefront', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, variables }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Storefront API error (${response.status}): ${text}`);
+  }
+
+  return await response.json();
 }
 
 /**
- * Create a Shopify customer via the Admin API.
+ * Sync storefront customer data into Supabase
+ Admin API.
  * Included password for Shopify account creation.
  */
 export async function createCustomerViaAdmin(input: {
@@ -312,6 +494,22 @@ export async function fetchCustomerOrdersViaAdmin(customerId: string): Promise<a
     return orderEdges.map((edge: any) => edge.node);
   } catch (error) {
     console.error("Error fetching orders:", error);
+    return [];
+  }
+}
+
+/**
+ * Fetch orders by customer email via the Admin API.
+ * This acts as a fallback for guest orders with the same email.
+ */
+export async function fetchCustomerOrdersByEmailViaAdmin(email: string): Promise<any[]> {
+  try {
+    const queryStr = `email:${email}`;
+    const data = await adminApiRequest(ORDERS_BY_EMAIL_QUERY, { query: queryStr });
+    const orderEdges = data?.data?.orders?.edges || [];
+    return orderEdges.map((edge: any) => edge.node);
+  } catch (error) {
+    console.error("Error fetching orders by email:", error);
     return [];
   }
 }
@@ -477,73 +675,301 @@ export async function fetchProductByHandleViaAdmin(handle: string): Promise<any 
     return null;
   }
 }
+
 /**
- * Generate a fresh Storefront Access Token via the Admin API.
- * This ensures we have a valid token even if the .env one is expired or invalid.
+ * Fetch review statistics for a product via the Admin API.
+ * Currently returns a placeholder since Shopify doesn't have a native "Review" object in Admin GraphQL by default.
  */
-export async function createStorefrontTokenViaAdmin(title = "Vite App Token"): Promise<string | null> {
-  const query = `
-    mutation storefrontAccessTokenCreate($input: StorefrontAccessTokenInput!) {
-      storefrontAccessTokenCreate(input: $input) {
-        storefrontAccessToken {
-          accessToken
-        }
-        userErrors {
-          field
-          message
-        }
-      }
-    }
-  `;
+export async function fetchReviewStatsViaAdmin(productId: string): Promise<{ rating: number; count: number }> {
+  // In a real implementation, you'd fetch this from a metafield or a third-party app via Admin API.
+  return { rating: 4.8, count: 12 };
+}
+
+
+/**
+ * Hybrid checkout solution: Creates a cart using the Admin API (which supports checkoutUrl)
+ * but bypasses Storefront API restrictions.
+ */
+export async function createHybridCheckout(
+  lineItems: Array<{ variantId: string; quantity: number }>, 
+  customerId?: string,
+  customerEmail?: string
+): Promise<{ success: boolean; checkoutUrl?: string; errors?: any[] }> {
+  const getNumericId = (gid: string) => {
+    if (!gid) return '';
+    if (!gid.includes('/')) return gid.replace(/\D/g, '');
+    return gid.split('/').pop()?.replace(/\D/g, '') || '';
+  };
   
   try {
-    const data = await adminApiRequest(query, {
-      input: { title }
-    });
+    console.log("[CHECKOUT] Starting Standard Checkout flow...");
+    const domain = import.meta.env.VITE_SHOPIFY_STORE_DOMAIN || "salmara-5.myshopify.com";
     
-    const userErrors = data?.data?.storefrontAccessTokenCreate?.userErrors || [];
-    if (userErrors.length > 0) {
-      console.error("Storefront token creation error:", userErrors);
-      return null;
+    const formattedItems = lineItems
+      .filter(item => item.variantId)
+      .map(item => {
+        const numId = getNumericId(item.variantId);
+        return numId ? `${numId}:${item.quantity}` : null;
+      })
+      .filter(Boolean);
+      
+    if (formattedItems.length > 0) {
+      const cartItems = formattedItems.join(',');
+      let permalinkUrl = `https://${domain}/cart/${cartItems}`;
+      
+      // Pre-fill the email so the user gets the order linked to their dashboard seamlessly
+      // This forces the classic Shopify Checkout UI (with "Same as billing" checkboxes)
+      const params = new URLSearchParams();
+      params.append('locale', 'en');
+      if (customerEmail) {
+        params.append('checkout[email]', customerEmail);
+      }
+      
+      permalinkUrl += `?${params.toString()}`;
+      
+      console.log("[CHECKOUT] Standard Checkout URL generated:", permalinkUrl);
+      return { success: true, checkoutUrl: permalinkUrl };
     }
     
-    return data?.data?.storefrontAccessTokenCreate?.storefrontAccessToken?.accessToken || null;
-  } catch (error) {
-    console.error("Failed to create storefront token:", error);
-    return null;
+    throw new Error("No valid items to checkout.");
+  } catch (error: any) {
+    console.error("[CHECKOUT] Total flow failure:", error.message);
+    return { success: false, errors: [{ message: error.message }] };
+  }
+}
+
+
+/**
+ * Sync cart data to Shopify customer metafield
+ */
+export async function syncCartToShopify(customerId: string, items: any[]): Promise<boolean> {
+  try {
+    const response = await fetch('/api/shopify-sync-cart', {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        customerId,
+        cartJson: JSON.stringify(items)
+      })
+    });
+    return response.ok;
+  } catch (err) {
+    console.error("Failed to sync cart to Shopify:", err);
+    return false;
   }
 }
 
 /**
- * Create a draft order via the Admin API to generate a checkout (invoice) URL.
+ * Log checkout telemetry to the terminal console (via Vite proxy)
  */
-export async function createDraftOrderViaAdmin(lineItems: Array<{ variantId: string; quantity: number }>, customerId?: string): Promise<{ success: boolean; invoiceUrl?: string; errors?: any[] }> {
+export async function logCheckoutToTerminal(url: string, source: string, items?: any[]) {
   try {
-    const data = await adminApiRequest(DRAFT_ORDER_CREATE_MUTATION, {
+    await fetch('/api/log-checkout', {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url, source, items })
+    });
+  } catch (err) {
+    console.error("Failed to log to terminal:", err);
+  }
+}
+
+/**
+ * Check if a customer has purchased a specific product.
+ */
+export async function checkCustomerHasPurchased(customerId: string, productId: string): Promise<boolean> {
+  try {
+    const data = await adminApiRequest(CUSTOMER_ORDERS_QUERY, { id: customerId });
+    const orders = data?.data?.customer?.orders?.edges || [];
+    
+    const getNumericId = (gid: string) => gid?.split('/').pop();
+    const targetProductIdNum = getNumericId(productId);
+
+    // Flatten all line items from all orders and check for the productId
+    return orders.some((orderEdge: any) => {
+      const lineItems = orderEdge.node.lineItems.edges || [];
+      return lineItems.some((liEdge: any) => {
+        const boughtProductId = liEdge.node.product?.id;
+        if (!boughtProductId) return false;
+        
+        // Direct match
+        if (boughtProductId === productId) return true;
+        
+        // Numeric match fallback
+        return getNumericId(boughtProductId) === targetProductIdNum;
+      });
+    });
+  } catch (error) {
+    console.error("Error verifying purchase:", error);
+    return false;
+  }
+}
+
+/**
+ * Fetch reviews stored in a Shopify product metafield.
+ */
+export async function fetchProductReviewsFromShopify(productId: string): Promise<any[]> {
+  try {
+    const data = await adminApiRequest(PRODUCT_REVIEWS_QUERY, { id: productId });
+    const metafieldValue = data?.data?.product?.metafield?.value;
+    if (metafieldValue) {
+      const parsed = JSON.parse(metafieldValue);
+      return Array.isArray(parsed) ? parsed : [];
+    }
+    return [];
+  } catch (error) {
+    console.error("Error fetching product reviews from Shopify:", error);
+    return [];
+  }
+}
+
+/**
+ * Add a review to a Shopify product's metafield.
+ */
+export async function updateProductReviewsInShopify(productId: string, reviews: any[]): Promise<AdminApiResponse> {
+  try {
+    const data = await adminApiRequest(PRODUCT_UPDATE_MUTATION, {
       input: {
-        lineItems: lineItems.map(item => ({
-          variantId: item.variantId,
-          quantity: item.quantity
-        })),
-        customerId: customerId || undefined,
-        useCustomerDefaultAddress: !!customerId
-      },
+        id: productId,
+        metafields: [{
+          namespace: "custom",
+          key: "reviews",
+          value: JSON.stringify(reviews),
+          type: "json"
+        }]
+      }
     });
 
     if (data?.errors) {
       return { success: false, errors: data.errors };
     }
 
-    const userErrors = data?.data?.draftOrderCreate?.userErrors || [];
+    const userErrors = data?.data?.productUpdate?.userErrors || [];
     if (userErrors.length > 0) {
       return { success: false, errors: userErrors };
     }
 
-    return { 
-      success: true, 
-      invoiceUrl: data.data.draftOrderCreate.draftOrder.invoiceUrl 
-    };
+    return { success: true };
   } catch (error: any) {
     return { success: false, errors: [{ message: error.message }] };
+  }
+}
+
+// ── Session helpers ──
+
+export const getStoredSession = () => {
+  const session = localStorage.getItem('shopify_customer_session');
+  if (!session) return null;
+  const parsed = JSON.parse(session);
+  if (Date.now() > parsed.expires) {
+    localStorage.removeItem('shopify_customer_session');
+    return null;
+  }
+  return parsed; // Return the entire session object { user, expires, accessToken }
+};
+
+export const saveAdminSession = (session: { user: any; expires: number }) => {
+  localStorage.setItem('salmara_admin_session', JSON.stringify(session));
+};
+
+export const getStoredAdminSession = () => {
+  const session = localStorage.getItem('salmara_admin_session');
+  if (!session) return null;
+  const parsed = JSON.parse(session);
+  if (Date.now() > parsed.expires) {
+    localStorage.removeItem('salmara_admin_session');
+    return null;
+  }
+  return parsed.user;
+};
+
+export const logoutAdmin = () => {
+  localStorage.removeItem('salmara_admin_session');
+};
+
+export async function adminLogin(email: string, password: string): Promise<{ success: boolean; user?: any; error?: string }> {
+  try {
+    const response = await fetch('/api/admin-auth-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Login failed");
+
+    return { success: true, user: result.user };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export function saveSession(session: any) {
+  localStorage.setItem('shopify_customer_session', JSON.stringify(session));
+  window.dispatchEvent(new Event('auth-status-change'));
+}
+
+export function clearSession() {
+  localStorage.removeItem('shopify_customer_session');
+  window.dispatchEvent(new Event('auth-status-change'));
+}
+
+export function logoutViaAdmin() {
+  clearSession();
+  window.location.href = '/';
+}
+
+/**
+ * Fetch customer wishlist from Shopify via Admin proxy
+ */
+export async function fetchCustomerWishlist(customerId: string): Promise<string[]> {
+  try {
+    const response = await fetch(`/api/wishlist?customerId=${encodeURIComponent(customerId)}`);
+    if (response.ok) {
+      const data = await response.json();
+      return data.wishlist || [];
+    }
+    return [];
+  } catch (error) {
+    console.error("Failed to fetch wishlist:", error);
+    return [];
+  }
+}
+
+/**
+ * Update customer wishlist in Shopify via Admin proxy
+ */
+export async function updateCustomerWishlist(customerId: string, productIds: string[]): Promise<boolean> {
+  try {
+    const response = await fetch(`/api/wishlist`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ customerId, productIds }),
+    });
+    return response.ok;
+  } catch (error) {
+    console.error("Failed to update wishlist:", error);
+    return false;
+  }
+}
+
+/**
+ * Fetch full product data for multiple variant IDs
+ */
+export async function fetchProductsByVariantIdsViaAdmin(variantIds: string[]): Promise<ShopifyProduct[]> {
+  if (!variantIds.length) return [];
+  
+  try {
+    // We use the search proxy with a query that matches specific variant IDs
+    // Since our search proxy currently fetches all and filters locally for simplicity,
+    // we can use it to get the full list and then filter.
+    // In a high-perf app, we'd use a dedicated batch node query.
+    const allProducts = await fetchProductsViaAdmin(250);
+    return allProducts.filter(p => 
+      p.node.variants.edges.some(v => variantIds.includes(v.node.id))
+    );
+  } catch (error) {
+    console.error("Failed to fetch products by IDs:", error);
+    return [];
   }
 }

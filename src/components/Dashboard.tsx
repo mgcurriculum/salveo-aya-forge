@@ -14,14 +14,20 @@ import {
   Trash2, 
   ShoppingCart as CartIcon, 
   ExternalLink, 
-  Loader2 
+  Loader2,
+  ArrowRight,
+  CheckCircle2,
+  Clock,
+  Package,
+  Truck,
+  X 
 } from "lucide-react";
-import { fetchCustomerViaAdmin, updateCustomerViaAdmin, fetchCustomerOrdersViaAdmin } from "@/lib/shopifyAdmin";
-import { clearSession, saveSession, getStoredSession, formatCheckoutUrl } from "@/lib/shopify";
+import { fetchCustomerViaAdmin, updateCustomerViaAdmin, fetchCustomerOrdersViaAdmin, fetchCustomerOrdersByEmailViaAdmin, clearSession, saveSession, getStoredSession } from "@/lib/shopifyAdmin";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { useCartStore } from "@/stores/cartStore";
+
 
 const logo = "/salamara_icon.png";
 
@@ -50,16 +56,38 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (activeTab === "orders" && user?.id) {
+      // Fetch fresh orders every time the tab is opened
       fetchOrders();
     }
   }, [activeTab, user?.id]);
 
+  const [selectedOrderForTracking, setSelectedOrderForTracking] = useState<any>(null);
+
+  const handleTrackOrder = (order: any) => {
+    setSelectedOrderForTracking(order);
+  };
+
   const fetchOrders = async () => {
-    if (!user?.id || orders.length > 0) return;
     setFetchingOrders(true);
     try {
-      const shopifyOrders = await fetchCustomerOrdersViaAdmin(user.id);
-      setOrders(shopifyOrders);
+      console.log("Fetching orders for customer ID:", user.id, "and email:", user.email);
+      
+      // 1. Fetch by Customer ID (directly linked orders)
+      const linkedOrders = await fetchCustomerOrdersViaAdmin(user.id);
+      
+      // 2. Fetch by Email (fallback for guest orders)
+      const emailOrders = await fetchCustomerOrdersByEmailViaAdmin(user.email);
+      
+      // Combine and remove duplicates (by ID)
+      const allOrders = [...linkedOrders];
+      emailOrders.forEach(eo => {
+        if (!allOrders.find(lo => lo.id === eo.id)) {
+          allOrders.push(eo);
+        }
+      });
+
+      console.log(`Found ${linkedOrders.length} linked and ${emailOrders.length} total unique orders.`);
+      setOrders(allOrders);
     } catch (error) {
       console.error("Error fetching orders:", error);
     } finally {
@@ -110,8 +138,8 @@ const Dashboard = () => {
   };
 
   const { clearCart } = useCartStore();
-  const handleLogout = () => {
-    clearSession();
+  const handleLogout = async () => {
+    await clearSession();
     clearCart();
     toast.success("Logged out successfully");
     setTimeout(() => {
@@ -336,10 +364,10 @@ const Dashboard = () => {
                           Phone Number
                         </label>
                         <input 
-                          type="text" 
+                          type="tel" 
                           value={formData.phone}
                           onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                          className="w-full bg-[#FDFBF7] border-2 border-[#F2EDE4] rounded-2xl px-6 py-4 text-lg font-display font-medium text-[#1A2E35] focus:outline-none focus:border-[#5A7A5C] focus:bg-white transition-all placeholder:text-[#1A2E35]/20"
+                          className="w-full bg-[#FDFBF7] border-2 border-[#F2EDE4] rounded-2xl px-6 py-4 text-lg font-sans-clean font-medium text-[#1A2E35] focus:outline-none focus:border-[#5A7A5C] focus:bg-white transition-all placeholder:text-[#1A2E35]/20"
                           placeholder="Enter phone number"
                         />
                       </div>
@@ -389,35 +417,57 @@ const Dashboard = () => {
                     <Loader2 className="h-10 w-10 text-[#5A7A5C] animate-spin mb-4" />
                     <p className="text-sm text-[#1A2E35]/40 font-sans-clean">Retrieving your treasures...</p>
                   </div>
-                ) : orders.length > 0 ? (
+                ) : (orders.length > 0 ) ? (
                   <div className="grid gap-6">
-                    {orders.map((order) => (
+                   {orders.map((order) => (
                       <motion.div 
                         key={order.id}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-white rounded-3xl p-8 border border-[#F2EDE4] hover:border-[#5A7A5C]/20 transition-all group overflow-hidden relative"
+                        className="bg-white rounded-3xl p-8 border border-[#F2EDE4] hover:border-[#5A7A5C]/20 transition-all group overflow-hidden relative shadow-sm"
                       >
+                        {/* Status Glow Overlay */}
+                        <div className={`absolute top-0 right-0 w-32 h-32 blur-3xl opacity-5 -translate-y-1/2 translate-x-1/2 pointer-events-none ${
+                          order.displayFulfillmentStatus === 'DELIVERED' ? 'bg-green-500' : 'bg-blue-500'
+                        }`} />
+                        
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
                           <div className="space-y-4">
                             <div className="flex items-center gap-4">
-                              <span className="text-lg font-display font-bold text-[#1A2E35]">{order.name}</span>
-                              <div className="flex gap-2">
-                                <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
+                              <span className="text-lg font-sans-clean font-bold text-[#1A2E35]">{order.name}</span>
+                              {order.id.startsWith('sample-') && (
+                                <span className="px-3 py-1 rounded-full bg-[#C5A059]/10 text-[#C5A059] text-[8px] font-bold uppercase tracking-widest border border-[#C5A059]/20">
+                                  Sample Order
+                                </span>
+                              )}
+                            </div>
+                            
+                            <div className="flex flex-col sm:flex-row gap-4">
+                              <div className="space-y-1">
+                                <p className="text-[8px] uppercase tracking-widest font-bold text-[#1A2E35]/30">Payment Status</p>
+                                <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
                                   order.displayFinancialStatus === 'PAID' 
                                     ? 'bg-green-100 text-green-700' 
                                     : 'bg-yellow-100 text-yellow-700'
                                 }`}>
                                   {order.displayFinancialStatus}
                                 </span>
-                                <span className="px-3 py-1 rounded-full bg-[#1A2E35]/5 text-[#1A2E35]/60 text-[10px] font-bold uppercase tracking-widest">
-                                  {order.displayFulfillmentStatus}
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-[8px] uppercase tracking-widest font-bold text-[#1A2E35]/30">Order Status</p>
+                                <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
+                                  order.displayFulfillmentStatus === 'DELIVERED' 
+                                    ? 'bg-blue-100 text-blue-700' 
+                                    : 'bg-[#1A2E35]/5 text-[#1A2E35]/60'
+                                }`}>
+                                  {order.displayFulfillmentStatus.replace('_', ' ')}
                                 </span>
                               </div>
                             </div>
-                            <div className="flex items-center gap-6 text-sm text-[#1A2E35]/40">
+
+                            <div className="flex items-center gap-6 text-sm text-[#1A2E35]/40 mt-2">
                               <div className="flex items-center gap-2">
-                                <Home className="h-4 w-4" />
+                                <ClipboardList className="h-4 w-4" />
                                 {new Date(order.processedAt).toLocaleDateString('en-IN', {
                                   day: 'numeric',
                                   month: 'short',
@@ -431,27 +481,41 @@ const Dashboard = () => {
                             </div>
                           </div>
 
-                          <div className="flex flex-col items-end gap-2">
+                          <div className="flex flex-col items-end gap-2 text-right">
                             <p className="text-[10px] uppercase tracking-widest font-bold text-[#1A2E35]/40">Total Amount</p>
-                            <p className="text-2xl font-display font-medium text-[#1A2E35]">
+                            <p className="text-2xl font-sans-clean font-bold text-[#1A2E35]">
                               {order.totalPriceSet.shopMoney.currencyCode === 'INR' ? '₹' : order.totalPriceSet.shopMoney.currencyCode}{' '}
                               {parseFloat(order.totalPriceSet.shopMoney.amount).toFixed(2)}
                             </p>
+                            <button 
+                              onClick={() => handleTrackOrder(order)}
+                              className="flex items-center gap-2 text-[10px] font-bold text-[#5A7A5C] uppercase tracking-widest hover:text-[#1A2E35] transition-colors mt-2"
+                            >
+                              Track My Order <ArrowRight className="h-3 w-3" />
+                            </button>
                           </div>
                         </div>
 
                         {/* Order Items Preview */}
                         <div className="mt-8 pt-8 border-t border-[#F2EDE4] flex items-center gap-4">
                           {order.lineItems.edges.slice(0, 4).map((edge: any, idx: number) => (
-                            <div key={idx} className="w-12 h-12 bg-[#F8F9FA] rounded-lg overflow-hidden border border-[#F2EDE4] flex-shrink-0 group-hover:scale-105 transition-transform duration-300">
-                              <img src={edge.node.image?.url || "/placeholder.svg"} alt={edge.node.title} className="w-full h-full object-cover" />
+                            <div key={idx} className="flex items-center gap-4 p-2 bg-[#F8F9FA] rounded-2xl border border-[#F2EDE4] flex-1 max-w-[280px]">
+                              <div className="w-12 h-12 rounded-xl overflow-hidden shadow-sm flex-shrink-0 bg-white">
+                                <img 
+                                  src={edge.node.image?.url || logo || "/placeholder.svg"} 
+                                  alt={edge.node.title} 
+                                  className="w-full h-full object-cover" 
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = logo || "/placeholder.svg";
+                                  }}
+                                />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-bold text-[#1A2E35] truncate">{edge.node.title}</p>
+                                <p className="text-[9px] text-[#1A2E35]/40 uppercase tracking-widest">Qty: {edge.node.quantity}</p>
+                              </div>
                             </div>
                           ))}
-                          {order.lineItems.edges.length > 4 && (
-                            <div className="h-10 w-10 rounded-lg bg-[#1A2E35]/5 flex items-center justify-center text-[10px] font-bold text-[#1A2E35]/40">
-                              +{order.lineItems.edges.length - 4}
-                            </div>
-                          )}
                         </div>
                       </motion.div>
                     ))}
@@ -475,12 +539,121 @@ const Dashboard = () => {
           </AnimatePresence>
         </div>
       </main>
+
+      {/* TRACKING MODAL */}
+      <TrackingModal 
+        order={selectedOrderForTracking} 
+        onClose={() => setSelectedOrderForTracking(null)} 
+      />
+    </div>
+  );
+};
+
+const TrackingModal = ({ order, onClose }: { order: any; onClose: () => void }) => {
+  if (!order) return null;
+
+  const steps = [
+    { title: "Order Placed", date: order.processedAt, completed: true, icon: ClipboardList },
+    { title: "Payment Confirmed", date: order.processedAt, completed: order.displayFinancialStatus === 'PAID', icon: CheckCircle2 },
+    { title: "Processing", date: order.processedAt, completed: true, icon: Package },
+    { 
+      title: "Shipped", 
+      date: order.fulfillments?.[0]?.createdAt || "Estimated: 1-2 days", 
+      completed: order.fulfillments?.length > 0, 
+      icon: Truck 
+    },
+    { 
+      title: "Delivered", 
+      date: order.displayFulfillmentStatus === 'DELIVERED' ? (order.fulfillments?.[0]?.updatedAt || order.fulfillments?.[0]?.createdAt) : "Estimated: 3-5 days", 
+      completed: order.displayFulfillmentStatus === 'DELIVERED', 
+      icon: Home 
+    },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="absolute inset-0 bg-[#1A2E35]/60 backdrop-blur-sm"
+      />
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="relative w-full max-w-xl bg-white rounded-[32px] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+      >
+        {/* Header */}
+        <div className="bg-[#1A2E35] text-white p-8 relative overflow-hidden shrink-0">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="relative flex items-center justify-between">
+            <div>
+              <p className="text-[9px] uppercase tracking-[0.3em] text-white/40 font-bold mb-0.5">Tracking Order</p>
+              <h2 className="text-2xl font-display font-medium">{order.name}</h2>
+            </div>
+            <button 
+              onClick={onClose}
+              className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all group"
+            >
+              <X className="h-5 w-5 group-hover:scale-110 transition-transform" />
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-8 -mt-4 bg-white rounded-[32px] relative z-20 overflow-y-auto">
+          <div className="flex flex-col gap-8">
+            {/* Timeline */}
+            <div className="space-y-0 relative">
+              {steps.map((step, idx) => (
+                <div key={idx} className="flex gap-6 relative pb-8 last:pb-0">
+                  {/* Line */}
+                  {idx !== steps.length - 1 && (
+                    <div className={`absolute left-4 top-8 w-[2px] h-full ${step.completed ? 'bg-[#5A7A5C]' : 'bg-[#F2EDE4]'}`} />
+                  )}
+                  
+                  {/* Icon Node */}
+                  <div className={`h-8 w-8 rounded-full flex items-center justify-center relative z-10 shrink-0 ${
+                    step.completed ? 'bg-[#5A7A5C] text-white' : 'bg-[#F2EDE4] text-[#1A2E35]/20'
+                  }`}>
+                    <step.icon className="h-4 w-4" />
+                    {step.completed && (
+                      <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-white rounded-full flex items-center justify-center text-[#5A7A5C] border-[1px] border-[#5A7A5C]">
+                        <CheckCircle2 className="h-2 w-2" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Text */}
+                  <div className="pt-0.5">
+                    <h4 className={`text-base font-display font-medium ${step.completed ? 'text-[#1A2E35]' : 'text-[#1A2E35]/30'}`}>
+                      {step.title}
+                    </h4>
+                    <p className={`text-[11px] font-sans-clean mt-0.5 ${step.completed ? 'text-[#1A2E35]/50' : 'text-[#1A2E35]/20'}`}>
+                      {step.title === "Shipped" && order.fulfillments?.[0]?.trackingInfo?.[0]?.number 
+                        ? `ID: ${order.fulfillments[0].trackingInfo[0].number} • ` 
+                        : ""
+                      }
+                      {step.completed 
+                        ? (idx < 3 ? new Date(step.date).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : new Date(step.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }))
+                        : step.date
+                      }
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 };
 
 const DashboardCart = () => {
-  const { items, isLoading, updateQuantity, removeItem, getCheckoutUrl } = useCartStore();
+  const { items, isLoading, updateQuantity, removeItem, checkout } = useCartStore();
   const totalPrice = items.reduce((sum, item) => sum + (parseFloat(item.price.amount) * item.quantity), 0);
 
   if (items.length === 0) {
@@ -555,14 +728,14 @@ const DashboardCart = () => {
           </p>
         </div>
         <button
-          onClick={() => {
-            const checkoutUrl = getCheckoutUrl();
-            if (checkoutUrl) window.location.href = formatCheckoutUrl(checkoutUrl);
+          onClick={async () => {
+            const checkoutUrl = await checkout();
+            if (checkoutUrl) window.location.assign(checkoutUrl);
           }}
           disabled={isLoading}
           className="w-full md:w-auto bg-[#5A7A5C] text-white px-12 py-5 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-[#4A634B] transition-all shadow-xl shadow-[#5A7A5C]/20 flex items-center justify-center gap-3"
         >
-          {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><ExternalLink className="w-4 h-4" /> Checkout Securely</>}
+          {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><ExternalLink className="w-4 h-4" /> Checkout</>}
         </button>
       </div>
     </motion.div>

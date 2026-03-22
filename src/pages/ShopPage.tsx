@@ -19,8 +19,12 @@ import {
   Star
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { type ShopifyProduct, createStorefrontCheckout } from "@/lib/shopify";
-import { fetchProductsViaAdmin } from "@/lib/shopifyAdmin";
+import { 
+  type ShopifyProduct, 
+  fetchProductsViaAdmin, 
+  createHybridCheckout, 
+  getStoredSession
+} from "@/lib/shopifyAdmin";
 import { useCartStore } from "@/stores/cartStore";
 import { useWishlistStore } from "@/stores/wishlistStore";
 import { toast } from "sonner";
@@ -36,7 +40,7 @@ import {
   DropdownMenuLabel
 } from "@/components/ui/dropdown-menu";
 // Assuming getStoredSession is available or will be added - REMOVED as no longer needed
-// import { getStoredSession } from "@/lib/shopify"; 
+// import { loginViaProxy, createCustomerViaAdmin, saveSession } from "@/lib/shopifyAdmin"; 
 
 const concerns = [
   { id: "pain", title: "Pain & Mobility", desc: "For muscle relief, joints, and inflammation support." },
@@ -192,23 +196,19 @@ const ShopPage = () => {
     
     console.log("Buy Now started for:", product.node.title, "Variant ID:", variant.id);
     setBuyingId(product.node.id);
-    
     try {
-      const result = await createStorefrontCheckout(
-        [{ variantId: variant.id, quantity: 1 }]
-      );
-
-      if (result) {
-        console.log("Buy Now redirecting to:", result);
-        window.location.href = result;
+      const session = getStoredSession();
+      const lineItems = [{ variantId: variant.id, quantity: 1 }];
+      const result = await createHybridCheckout(lineItems, session?.user?.id);
+      
+      if (result.success && result.checkoutUrl) {
+        window.location.href = result.checkoutUrl;
       } else {
-        console.error("Buy Now: No result URL returned");
-        toast.error("Checkout failed", { description: "Could not generate checkout link. Please try adding to cart." });
+        toast.error("Checkout failed. Please try again.");
+        setBuyingId(null);
       }
-    } catch (error) {
-      console.error("Buy Now Error:", error);
-      toast.error("Something went wrong", { description: "Please try again or use standard Add to Cart." });
-    } finally {
+    } catch (error: any) {
+      toast.error("An unexpected error occurred");
       setBuyingId(null);
     }
   };
@@ -493,10 +493,10 @@ const ShopPage = () => {
 
                       {/* Wishlist Button */}
                       <button 
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          if (variant) toggleItem(product, variant.id);
+                          if (variant) await toggleItem(product, variant.id);
                         }}
                         className={`absolute top-4 right-4 p-2.5 rounded-full backdrop-blur-md border transition-all z-20 shadow-sm ${
                           variant && isInWishlist(variant.id) 

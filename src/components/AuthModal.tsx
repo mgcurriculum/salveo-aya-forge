@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Loader2 } from "lucide-react";
-import { saveSession } from "@/lib/shopify";
+import { saveSession } from "@/lib/shopifyAdmin";
 import { createCustomerViaAdmin, loginViaProxy, updateCustomerCartId } from "@/lib/shopifyAdmin";
 import { syncShopifyCustomerToDb } from "@/lib/dbSync";
 import { useCartStore } from "@/stores/cartStore";
@@ -42,13 +42,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialVi
       const currentCartId = cartId;
       clearCart();
 
+      // Sync with standard session FIRST
+      saveSession({
+        accessToken: "admin_proxy_mode",
+        user: result.user,
+        expires: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 days
+      });
+
       // 1. Restore Cart from Shopify if available
       if (result.user?.shopifyCartId) {
         console.log("Found Shopify Cart ID, restoring:", result.user.shopifyCartId);
         setCartId(result.user.shopifyCartId);
         // Wait a bit for state to propagate
         setTimeout(async () => {
-          await syncCart();
+          await syncCart(); 
           console.log("Cart restoration complete");
         }, 500);
       } else if (currentCartId) {
@@ -58,13 +65,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialVi
         // Restore local id
         setCartId(currentCartId);
       }
-
-      // Sync with standard session
-      saveSession({
-        accessToken: "admin_proxy_mode",
-        user: result.user,
-        expires: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 days
-      });
 
       toast.success(`Welcome back, ${result.user?.name}!`);
       onClose();
@@ -132,25 +132,27 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialVi
       const currentCartId = cartId;
       clearCart();
 
+      const userData = {
+        id: customer?.id,
+        email: customer?.email,
+        name: `${customer?.firstName} ${customer?.lastName}`.trim(),
+        firstName: customer?.firstName,
+        lastName: customer?.lastName,
+        phone: customer?.phone
+      };
+
+      // Account created! Automagically log them in
+      saveSession({
+        accessToken: "admin_proxy_mode",
+        user: userData,
+        expires: Date.now() + (30 * 24 * 60 * 60 * 1000)
+      });
+
       if (customer?.id && currentCartId) {
         console.log("Saving guest cart to new account:", currentCartId);
         await updateCustomerCartId(customer.id, currentCartId);
         setCartId(currentCartId);
       }
-
-      // Account created! Automagically log them in
-      saveSession({
-        accessToken: "admin_proxy_mode",
-        user: {
-          id: customer?.id,
-          email: customer?.email,
-          name: `${customer?.firstName} ${customer?.lastName}`.trim(),
-          firstName: customer?.firstName,
-          lastName: customer?.lastName,
-          phone: customer?.phone
-        },
-        expires: Date.now() + (30 * 24 * 60 * 60 * 1000)
-      });
 
       toast.success(`Welcome, ${firstName}! Your account is ready.`);
       onClose();

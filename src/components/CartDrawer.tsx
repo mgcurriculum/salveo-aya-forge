@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ShoppingCart, Minus, Plus, Trash2, ExternalLink, Loader2 } from "lucide-react";
+import { getStoredSession, logCheckoutToTerminal } from "@/lib/shopifyAdmin";
 import { useCartStore } from "@/stores/cartStore";
-import { formatCheckoutUrl } from "@/lib/shopify";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export const CartDrawer = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
   const { items, isLoading, updateQuantity, removeItem, checkout, syncCart } = useCartStore();
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = items.reduce((sum, item) => sum + (parseFloat(item.price.amount) * item.quantity), 0);
@@ -14,11 +16,24 @@ export const CartDrawer = () => {
   useEffect(() => { if (isOpen) syncCart(); }, [isOpen, syncCart]);
 
   const handleCheckout = async () => {
-    const checkoutUrl = await checkout();
-    if (checkoutUrl) {
-      window.location.href = formatCheckoutUrl(checkoutUrl);
-    } else {
-      toast.error("Checkout failed. Please try again.");
+    const session = getStoredSession();
+    if (!session?.user) {
+      setIsOpen(false);
+      navigate("/login?redirect=checkout");
+      return;
+    }
+
+    try {
+      const checkoutUrl = await checkout();
+      if (checkoutUrl) {
+        console.log("CartDrawer: Redirecting to Shopify Checkout:", checkoutUrl);
+        await logCheckoutToTerminal(checkoutUrl, "CartDrawer (Direct Checkout)");
+        window.location.href = checkoutUrl;
+      } else {
+        toast.error("Checkout failed. Please try again.");
+      }
+    } catch (error) {
+      toast.error("Checkout failed");
     }
   };
 
@@ -27,7 +42,7 @@ export const CartDrawer = () => {
       <SheetTrigger asChild>
         <button className="p-2 text-foreground/70 hover:text-primary transition-colors relative" aria-label="Cart">
           <ShoppingCart className="h-5 w-5" />
-          {totalItems > 0 && (
+          {getStoredSession() && totalItems > 0 && (
             <span className="absolute -top-0.5 -right-0.5 bg-accent text-accent-foreground text-[10px] font-sans-clean font-bold rounded-full h-4 w-4 flex items-center justify-center">
               {totalItems}
             </span>
@@ -99,7 +114,7 @@ export const CartDrawer = () => {
                   disabled={isLoading}
                   className="w-full bg-primary hover:bg-herbal-dark text-primary-foreground py-3 rounded-lg font-sans-clean font-semibold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
                 >
-                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><ExternalLink className="w-4 h-4" /> Checkout with Shopify</>}
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><ExternalLink className="w-4 h-4" /> Checkout</>}
                 </button>
               </div>
             </>

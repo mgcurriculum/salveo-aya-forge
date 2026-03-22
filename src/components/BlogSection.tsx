@@ -13,7 +13,7 @@ const posts = [
   },
   {
     title: "Ashwagandha: The Ancient Stress Buster",
-    snippet: "Learn why this adaptogen is gaining global recognition in wellness circles.",
+    snippet: "Learn why this adaptogen is gaining PAN India recognition in wellness circles.",
     image: ashwagandhaImg,
   },
   {

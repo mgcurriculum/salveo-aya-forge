@@ -27,7 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const adminToken = process.env.SHOPIFY_ADMIN_API_ACCESS_TOKEN;
-    const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN || "salveo-aya-forge-rt8fh.myshopify.com";
+    const storeDomain = process.env.VITE_SHOPIFY_STORE_DOMAIN ;
     const apiVersion = process.env.VITE_SHOPIFY_API_VERSION || "2025-07";
     const shopifyUrl = `https://${storeDomain}/admin/api/${apiVersion}/graphql.json`;
 

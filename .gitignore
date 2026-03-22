@@ -25,3 +25,13 @@ dist-ssr
 .env
 .env.*
 !.env.example
+
+# Temporary Scripts and Data
+add_products.mjs
+fetch_orders.mjs
+upload_images.mjs
+error.json
+test.json
+output.json
+vite.config.ts.timestamp*
+

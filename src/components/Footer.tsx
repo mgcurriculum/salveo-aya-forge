@@ -8,9 +8,10 @@ const Footer = () => (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-16 lg:gap-8 mb-20">
         {/* Brand Column */}
         <div className="max-w-xs">
-          <img src={logo} alt="Salmara" className="h-8 mb-10 brightness-0 invert" />
+          <p>Salmara Ayurveda</p> <br />
+          {/* <img src={logo} alt="Salmara" className="h-8 mb-10 brightness-0 invert" /> */}
           <p className="text-white/90 font-body text-base leading-relaxed">
-            Rediscover Wellness Through Authentic Ayurveda. Rooted in Karnataka, trusted globally.
+            Rediscover Wellness Through Authentic Ayurveda. Rooted in Karnataka, trusted PAN India.
           </p>
         </div>
 
